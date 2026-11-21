@@ -144,7 +144,7 @@ export default function OrderList({ orders, focusId = "" }: { orders: Order[]; f
               <p className="font-medium">{group.customer}</p>
               <p className="text-sm text-zinc-500">{group.phone}</p>
             </div>
-            <a className="inline-flex h-8 items-center rounded-full bg-emerald-500 px-3 text-xs font-semibold text-white" href={`https://wa.me/${(group.phone || "").replace(/\D/g, "")}`} target="_blank">WhatsApp</a>
+            <a className="inline-flex h-8 items-center rounded-lg bg-emerald-500 px-3 text-xs font-semibold text-white" href={`https://wa.me/${(group.phone || "").replace(/\D/g, "")}`} target="_blank">WhatsApp</a>
           </div>
           <div className="mt-3 text-sm">
             {group.items.map((item) => <p key={item.id}>{item.title}</p>)}
@@ -157,13 +157,13 @@ export default function OrderList({ orders, focusId = "" }: { orders: Order[]; f
           ) : null}
           {group.status === "pending" || group.status === "packed" ? (
             <div className="mt-4 grid grid-cols-2 gap-2">
-              <button type="button" onClick={() => move(group, "cancelled")} disabled={pendingKey === group.key} className="h-10 rounded-full border border-rose-300 text-sm font-semibold text-rose-600">Cancel</button>
-              {group.status === "pending" ? <button type="button" onClick={() => move(group, "packed")} disabled={pendingKey === group.key} className="h-10 rounded-full bg-zinc-950 text-sm font-semibold text-white">{pendingKey === group.key ? "Saving..." : "Pack"}</button> : null}
-              {group.status === "packed" ? <button type="button" onClick={() => move(group, "out")} disabled={pendingKey === group.key} className="h-10 rounded-full bg-zinc-950 text-sm font-semibold text-white">{pendingKey === group.key ? "Saving..." : "Out"}</button> : null}
+              <button type="button" onClick={() => move(group, "cancelled")} disabled={pendingKey === group.key} className="h-10 rounded-lg border border-rose-300 text-sm font-semibold text-rose-600">Cancel</button>
+              {group.status === "pending" ? <button type="button" onClick={() => move(group, "packed")} disabled={pendingKey === group.key} className="h-10 rounded-lg bg-zinc-950 text-sm font-semibold text-white">{pendingKey === group.key ? "Saving..." : "Pack"}</button> : null}
+              {group.status === "packed" ? <button type="button" onClick={() => move(group, "out")} disabled={pendingKey === group.key} className="h-10 rounded-lg bg-zinc-950 text-sm font-semibold text-white">{pendingKey === group.key ? "Saving..." : "Out"}</button> : null}
             </div>
           ) : null}
           {group.status === "out" ? (
-            <button type="button" onClick={() => move(group, "done")} disabled={pendingKey === group.key} className="mt-4 h-10 w-full rounded-full bg-emerald-500 text-sm font-semibold text-white">{pendingKey === group.key ? "Saving..." : "Delivered"}</button>
+            <button type="button" onClick={() => move(group, "done")} disabled={pendingKey === group.key} className="mt-4 h-10 w-full rounded-lg bg-emerald-500 text-sm font-semibold text-white">{pendingKey === group.key ? "Saving..." : "Delivered"}</button>
           ) : null}
         </div>
       ))}

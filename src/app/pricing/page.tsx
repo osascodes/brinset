@@ -47,7 +47,7 @@ export default function PricingPage() {
                   <li key={item} className="flex gap-2"><span className="text-violet-300">✓</span>{item}</li>
                 ))}
               </ul>
-              <Link href="/register" className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-full bg-white text-sm font-semibold text-zinc-950">
+              <Link href="/register" className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-lg bg-white text-sm font-semibold text-zinc-950">
                 Start free trial
               </Link>
             </article>
@@ -61,7 +61,7 @@ export default function PricingPage() {
                   <li key={item} className="flex gap-2"><span className="text-zinc-500">✓</span>{item}</li>
                 ))}
               </ul>
-              <Link href="/register" className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-full border border-zinc-300 text-sm font-semibold text-zinc-950">
+              <Link href="/register" className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-lg border border-zinc-300 text-sm font-semibold text-zinc-950">
                 Choose Starter
               </Link>
             </article>
@@ -76,7 +76,7 @@ export default function PricingPage() {
                   <li key={item} className="flex gap-2"><span className="text-indigo-300">✓</span>{item}</li>
                 ))}
               </ul>
-              <Link href="/register" className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-full bg-[#635BFF] text-sm font-semibold text-white">
+              <Link href="/register" className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-lg bg-[#635BFF] text-sm font-semibold text-white">
                 Choose Pro
               </Link>
             </article>

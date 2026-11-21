@@ -17,7 +17,7 @@ export default function Navbar() {
           <a href="#features" className="hover:text-zinc-950">Features</a>
           <Link href="/pricing" className="hover:text-zinc-950">Pricing</Link>
           <Link href="/login" className="hover:text-zinc-950">Sign In</Link>
-          <Link href="/register" className="rounded-full bg-[#635BFF] px-4 py-2 font-medium text-white">
+          <Link href="/register" className="rounded-lg bg-[#635BFF] px-4 py-2 font-medium text-white">
             Get Started
           </Link>
         </div>
@@ -41,7 +41,7 @@ export default function Navbar() {
           <a href="#features" className="block rounded-xl px-3 py-3 text-base text-zinc-800" onClick={() => setOpen(false)}>Features</a>
           <Link href="/pricing" className="block rounded-xl px-3 py-3 text-base text-zinc-800" onClick={() => setOpen(false)}>Pricing</Link>
           <Link href="/login" className="block rounded-xl px-3 py-3 text-base text-zinc-800" onClick={() => setOpen(false)}>Sign In</Link>
-          <Link href="/register" className="mt-2 flex h-12 items-center justify-center rounded-full bg-[#635BFF] text-sm font-semibold text-white" onClick={() => setOpen(false)}>
+          <Link href="/register" className="mt-2 flex h-12 items-center justify-center rounded-lg bg-[#635BFF] text-sm font-semibold text-white" onClick={() => setOpen(false)}>
             Get Started
           </Link>
         </div>

@@ -113,7 +113,7 @@ export default function AppNav({ role = "owner", alertCount = 0 }: { role?: stri
           <div className="absolute inset-x-3 bottom-3 rounded-3xl bg-white p-4 shadow-2xl">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-lg font-semibold">More</p>
-              <button type="button" onClick={() => setOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100" aria-label="Close">
+              <button type="button" onClick={() => setOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100" aria-label="Close">
                 <X className="h-4 w-4" />
               </button>
             </div>

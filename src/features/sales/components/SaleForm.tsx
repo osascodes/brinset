@@ -113,7 +113,7 @@ export default function SaleForm({ products, customers = [], offlineMode = false
         <Label className="text-zinc-600">Quantity</Label>
         <Input value={quantity} onChange={(event) => setQuantity(Number(event.target.value))} type="number" min="1" step="1" />
       </div>
-      <button type="button" onClick={addLine} className="inline-flex h-11 w-full items-center justify-center rounded-full bg-white text-sm font-semibold text-zinc-950">
+      <button type="button" onClick={addLine} className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-white text-sm font-semibold text-zinc-950">
         Add item
       </button>
       {lines.length > 0 ? (

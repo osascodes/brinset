@@ -96,7 +96,7 @@ export default function AccountForm({ name, email, phone, avatar }: { name: stri
         <span className="text-sm text-zinc-500">Phone number</span>
         <input name="phone" defaultValue={phone} placeholder="+234" className="mt-1 w-full bg-transparent text-base font-medium outline-none" />
       </label>
-      <button type="submit" className="mt-6 h-11 w-full rounded-full bg-zinc-950 text-sm font-semibold text-white">
+      <button type="submit" className="mt-6 h-11 w-full rounded-lg bg-zinc-950 text-sm font-semibold text-white">
         {saving ? "Saving..." : done || "Save Changes"}
       </button>
     </form>

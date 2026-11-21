@@ -28,10 +28,10 @@ export default function ShareStoreLink({ name, slug }: { name: string; slug: str
       <p className="mt-1 text-lg font-semibold">{name}</p>
       <p className="mt-1 text-sm text-zinc-500">{path}</p>
       <div className="mt-4 grid grid-cols-2 gap-2">
-        <button type="button" onClick={copy} className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-zinc-200 text-sm font-semibold">
+        <button type="button" onClick={copy} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-zinc-200 text-sm font-semibold">
           <Copy className="h-4 w-4" /> {copied ? "Copied" : "Copy"}
         </button>
-        <button type="button" onClick={share} className="inline-flex h-11 items-center justify-center whitespace-nowrap rounded-full bg-[#635BFF] px-3 text-xs font-semibold text-white">
+        <button type="button" onClick={share} className="inline-flex h-11 items-center justify-center whitespace-nowrap rounded-lg bg-[#635BFF] px-3 text-xs font-semibold text-white">
           Share on WhatsApp
         </button>
       </div>

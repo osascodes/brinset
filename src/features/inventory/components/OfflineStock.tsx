@@ -66,7 +66,7 @@ export default function OfflineStock({ products }: { products?: SavedProduct[] }
             </div>
             <div className="mt-3 flex gap-2">
               <input name="stock" type="number" min="0" step="1" defaultValue={product.stock} className="h-9 flex-1 rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-950" />
-              <button type="submit" className="h-9 rounded-full bg-white px-4 text-sm font-semibold text-zinc-950">Save</button>
+              <button type="submit" className="h-9 rounded-lg bg-white px-4 text-sm font-semibold text-zinc-950">Save</button>
             </div>
           </form>
         ))

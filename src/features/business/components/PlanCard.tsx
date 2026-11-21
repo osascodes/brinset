@@ -41,10 +41,10 @@ export default function PlanCard({
       <p className="mt-3 text-sm text-zinc-400">The plan changes only after Paystack confirms the payment.</p>
       {errorMessage ? <p className="mt-3 text-sm text-red-400">{errorMessage}</p> : null}
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        <button type="button" onClick={() => pay("starter")} disabled={pending !== ""} className="h-11 rounded-full border border-zinc-300 text-sm font-semibold text-zinc-950">
+        <button type="button" onClick={() => pay("starter")} disabled={pending !== ""} className="h-11 rounded-lg border border-zinc-300 text-sm font-semibold text-zinc-950">
           {pending === "starter" ? "Opening Paystack..." : "Starter · ₦5,000"}
         </button>
-        <button type="button" onClick={() => pay("pro")} disabled={pending !== ""} className="h-11 rounded-full bg-[#635BFF] text-sm font-semibold text-white">
+        <button type="button" onClick={() => pay("pro")} disabled={pending !== ""} className="h-11 rounded-lg bg-[#635BFF] text-sm font-semibold text-white">
           {pending === "pro" ? "Opening Paystack..." : "Pro · ₦10,000"}
         </button>
       </div>

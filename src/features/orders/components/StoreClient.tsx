@@ -194,12 +194,18 @@ export default function StoreClient({
           <p className={`mt-0.5 px-1 text-xs ${product.stock <= 0 ? "text-rose-600" : product.stock <= 5 ? "text-amber-600" : "text-emerald-600"}`}>{stock.label}</p>
         </button>
         {product.stock <= 0 ? (
-          <button type="button" disabled className="mt-3 h-11 w-full rounded-full bg-zinc-100 text-sm font-semibold text-zinc-400">Out of stock</button>
-        ) : (
-          <button type="button" onClick={() => setQty(product.id, Math.min(product.stock, qty + 1))} className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#635BFF] text-sm font-semibold text-white">
+          <button type="button" disabled className="mt-3 h-11 w-full rounded-lg bg-zinc-100 text-sm font-semibold text-zinc-400">Out of stock</button>
+        ) : qty === 0 ? (
+          <button type="button" onClick={() => setQty(product.id, 1)} className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#635BFF] text-sm font-semibold text-white">
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 6h15l-1.5 9h-12z" /><path d="M6 6 5 3H2" /><circle cx="9" cy="20" r="1" /><circle cx="18" cy="20" r="1" /></svg>
-            {qty > 0 ? `Added · ${qty}` : "Add to Cart"}
+            Add to Cart
           </button>
+        ) : (
+          <div className="mt-3 flex h-11 items-center justify-between rounded-lg bg-[#635BFF] px-2 text-white">
+            <button type="button" onClick={() => setQty(product.id, qty - 1)} className="flex h-8 w-8 items-center justify-center rounded-lg text-lg" aria-label="Decrease">−</button>
+            <span className="text-sm font-semibold">{qty}</span>
+            <button type="button" onClick={() => setQty(product.id, Math.min(product.stock, qty + 1))} className="flex h-8 w-8 items-center justify-center rounded-lg text-lg" aria-label="Increase">+</button>
+          </div>
         )}
       </article>
     );
@@ -248,7 +254,7 @@ export default function StoreClient({
 
         {searchOpen ? (
           <div className="px-4 pb-3">
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search products" className="h-11 w-full rounded-full border border-zinc-200 px-4 text-sm outline-none focus:border-[#635BFF]" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search products" className="h-11 w-full rounded-lg border border-zinc-200 px-4 text-sm outline-none focus:border-[#635BFF]" />
           </div>
         ) : null}
 
@@ -260,7 +266,7 @@ export default function StoreClient({
               <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/80">{titleCase(business.category) || "The new collection"}</p>
               <h1 className="mt-2 max-w-xs text-4xl font-bold leading-[1.05]">{headline}</h1>
               <p className="mt-3 max-w-xs text-sm leading-5 text-white/85">{description}</p>
-              <button type="button" onClick={() => document.getElementById("products")?.scrollIntoView({ behavior: "smooth" })} className="mt-5 h-11 w-fit rounded-full bg-white px-6 text-sm font-semibold text-zinc-950">SHOP NOW</button>
+              <button type="button" onClick={() => document.getElementById("products")?.scrollIntoView({ behavior: "smooth" })} className="mt-5 h-11 w-fit rounded-lg bg-white px-6 text-sm font-semibold text-zinc-950">SHOP NOW</button>
             </div>
           </div>
         </section>
@@ -286,7 +292,7 @@ export default function StoreClient({
           <h2 className="text-2xl font-bold">{category === "All" ? "Our Products" : titleCase(category)}</h2>
           <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
             {([["all", "All"], ["new", "New Products"], ["best", "Best Sellers"]] as const).map(([id, label]) => (
-              <button key={id} type="button" onClick={() => setView(id)} className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium ${view === id ? "bg-[#635BFF] text-white" : "bg-zinc-100 text-zinc-700"}`}>{label}</button>
+              <button key={id} type="button" onClick={() => setView(id)} className={`shrink-0 rounded-lg px-4 py-2 text-sm font-medium ${view === id ? "bg-[#635BFF] text-white" : "bg-zinc-100 text-zinc-700"}`}>{label}</button>
             ))}
           </div>
           {shown.length === 0 ? (
@@ -316,7 +322,7 @@ export default function StoreClient({
           <p className="mt-3 text-sm text-white/70">Follow us on social media</p>
           <div className="mt-3 flex items-center justify-center gap-4">
             {social.length === 0 ? <span className="text-sm text-white/40">No social links yet</span> : social.map(([label, url, kind]) => (
-              <a key={label} href={url} target="_blank" className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20" aria-label={label}>
+              <a key={label} href={url} target="_blank" className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/20" aria-label={label}>
                 {kind === "ig" ? (
                   <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="4" y="4" width="16" height="16" rx="4" /><circle cx="12" cy="12" r="3.5" /><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" /></svg>
                 ) : kind === "tt" ? (
@@ -338,7 +344,7 @@ export default function StoreClient({
           href={shopWhatsapp}
           target="_blank"
           aria-label="WhatsApp"
-          className="fixed z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg"
+          className="fixed z-40 flex h-14 w-14 items-center justify-center rounded-lg bg-[#25D366] text-white shadow-lg"
           style={waPos ? { left: waPos.x, top: waPos.y } : { right: 16, bottom: 24 }}
           onPointerDown={(event) => {
             const rect = event.currentTarget.getBoundingClientRect();
@@ -382,7 +388,7 @@ export default function StoreClient({
             {selected.description ? <p className="mt-4 text-sm leading-6 text-zinc-700">{selected.description}</p> : null}
             <div className="mt-6 flex items-center justify-between">
               <p className="text-sm font-medium text-zinc-700">Quantity</p>
-              <div className="flex items-center rounded-full bg-white p-1 text-zinc-950">
+              <div className="flex items-center rounded-lg bg-zinc-100 p-1 text-zinc-950">
                 <button type="button" onClick={() => setDetailQty((value) => Math.max(1, value - 1))} className="h-8 w-8">−</button>
                 <span className="w-6 text-center text-sm">{detailQty}</span>
                 <button type="button" onClick={() => setDetailQty((value) => Math.min(selected.stock, value + 1))} className="h-8 w-8">+</button>
@@ -421,7 +427,7 @@ export default function StoreClient({
                 <p className="mt-4 text-sm text-zinc-400">Total</p>
                 <p className="mt-1 text-xl font-semibold">₦{successTotal.toLocaleString()}</p>
                 <p className="mt-4 text-sm text-zinc-500">WhatsApp should open with the order. The shop has it too.</p>
-                <button type="button" onClick={() => { setOrderNumber(""); setOpen(false); }} className="mt-6 h-11 rounded-full bg-white px-6 text-sm font-semibold text-zinc-950">Continue shopping</button>
+                <button type="button" onClick={() => { setOrderNumber(""); setOpen(false); }} className="mt-6 h-11 rounded-lg bg-white px-6 text-sm font-semibold text-zinc-950">Continue shopping</button>
               </div>
             ) : (
               <div className="mt-6 space-y-5">
@@ -434,7 +440,7 @@ export default function StoreClient({
                       <p className="truncate text-sm font-medium">{line.name}</p>
                       <p className="text-xs text-zinc-500">₦{(Number(line.price) * line.quantity).toLocaleString()}</p>
                     </div>
-                    <div className="flex items-center rounded-full bg-white p-1 text-zinc-950">
+                    <div className="flex items-center rounded-lg bg-zinc-100 p-1 text-zinc-950">
                       <button type="button" onClick={() => setQty(line.id, line.quantity - 1)} className="h-7 w-7">−</button>
                       <span className="w-5 text-center text-sm">{line.quantity}</span>
                       <button type="button" onClick={() => setQty(line.id, Math.min(line.stock, line.quantity + 1))} className="h-7 w-7">+</button>

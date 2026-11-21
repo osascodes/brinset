@@ -82,7 +82,7 @@ export default function ProductEditor({ product, onStock }: { product: Product; 
             placeholder="Qty"
             className="h-9 w-16 rounded-lg border border-zinc-300 bg-white px-2 text-sm text-zinc-950 outline-none"
           />
-          <button type="submit" disabled={adding} className="h-9 rounded-full bg-white px-3 text-xs font-semibold text-zinc-950">
+          <button type="submit" disabled={adding} className="h-9 rounded-lg bg-white px-3 text-xs font-semibold text-zinc-950">
             {adding ? "..." : "Add"}
           </button>
         </form>
