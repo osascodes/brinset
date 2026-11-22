@@ -58,6 +58,7 @@ export default function ExpenseForm({ offlineMode = false, onQueued }: { offline
     >
       {errorMessage ? <p className="text-sm text-red-400">{errorMessage}</p> : null}
       {notice ? <p className="text-sm text-zinc-500">{notice}</p> : null}
+      {saved ? <p className="text-sm text-emerald-700">Expense saved successfully.</p> : null}
       <div className="space-y-1.5">
         <Label className="text-zinc-600">What did you spend on?</Label>
         <Input name="title" placeholder="Fabric" required />
@@ -74,7 +75,7 @@ export default function ExpenseForm({ offlineMode = false, onQueued }: { offline
         <Label className="text-zinc-600">Amount</Label>
         <Input name="amount" type="number" min="1" step="0.01" required />
       </div>
-      <Button type="submit" className="w-full bg-[#635BFF] text-white" disabled={pending}>{pending ? "Saving..." : saved ? "Saved" : offlineMode ? "Save offline" : "Save expense"}</Button>
+      <Button type="submit" className="w-full bg-[#635BFF] text-white" disabled={pending}>{pending ? "Saving..." : saved ? "Expense saved" : offlineMode ? "Save offline" : "Save expense"}</Button>
     </form>
   );
 }

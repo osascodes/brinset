@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import OfflineReady from "@/components/OfflineReady";
+import Toaster from "@/components/Toast";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -44,6 +45,7 @@ export default function RootLayout({
       <body className={`${jakarta.className} min-h-full overflow-x-hidden bg-zinc-50 text-zinc-950`}>
         <OfflineReady />
         {children}
+        <Toaster />
       </body>
     </html>
   );

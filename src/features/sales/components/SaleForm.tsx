@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { recordSaleAction } from "@/features/sales/actions";
+import { toast } from "@/components/Toast";
 import { SALE_CUSTOMERS, SALE_PRODUCTS, readQueue, writeQueue } from "@/features/sales/offline";
 
 type Product = { id: string; name: string; price: number; stock: number };
@@ -12,9 +14,11 @@ type Line = { productId: string; quantity: number };
 const field = "h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-950 outline-none focus:border-[#635BFF]";
 
 export default function SaleForm({ products, customers = [], offlineMode = false }: { products: Product[]; customers?: Customer[]; offlineMode?: boolean }) {
+  const router = useRouter();
   const [errorMessage, setErrorMessage] = useState("");
   const [pending, setPending] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
   const [productId, setProductId] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [lines, setLines] = useState<Line[]>([]);
@@ -65,15 +69,22 @@ export default function SaleForm({ products, customers = [], offlineMode = false
     setQuantity(1);
   };
 
-  const onSubmit = async (formData: FormData) => {
+  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setErrorMessage("");
     setPending(true);
+    setSaved(false);
+    setSuccessMessage("");
+    const formData = new FormData(event.currentTarget);
+    const customerId = String(formData.get("customer_id") || "");
+    formData.set("discount", String(discountAmount));
+    formData.set("on_credit", onCredit ? "on" : "");
     try {
       const payload = {
         id: crypto.randomUUID(),
         items: lines.map((line) => ({ product_id: line.productId, quantity: line.quantity })),
-        customer_id: String(formData.get("customer_id") || ""),
-        on_credit: formData.get("on_credit") === "on",
+        customer_id: customerId,
+        on_credit: onCredit,
         discount: discountAmount,
         label: lines
           .map((line) => {
@@ -83,32 +94,41 @@ export default function SaleForm({ products, customers = [], offlineMode = false
           .join(", "),
         total,
       };
+      if (onCredit && !customerId) throw new Error("Pick a customer for a credit sale");
       if (offlineMode || !navigator.onLine) {
-        if (payload.on_credit && !payload.customer_id) throw new Error("Pick a customer for a credit sale");
         writeQueue([...readQueue(), payload]);
         setLines([]);
         setDiscountValue(0);
+        setOnCredit(false);
         setErrorMessage("Saved on this phone. It will send when the network returns.");
+        toast("Saved on this phone.");
         return;
       }
-      formData.set("discount", String(discountAmount));
       await recordSaleAction(formData);
       setSaved(true);
-      window.setTimeout(() => setSaved(false), 2000);
       setLines([]);
       setDiscountValue(0);
+      setOnCredit(false);
+      const message = onCredit ? "Credit sale recorded. Marked unpaid." : "Sale recorded successfully.";
+      setSuccessMessage(message);
+      toast(message);
+      router.refresh();
+      window.setTimeout(() => setSaved(false), 2500);
     } catch (error: unknown) {
-      setErrorMessage(error instanceof Error ? error.message : "Could not record sale.");
+      const message = error instanceof Error ? error.message : "Could not record sale.";
+      setErrorMessage(message);
+      toast(message, "error");
     } finally {
       setPending(false);
     }
   };
 
   return (
-    <form action={onSubmit} className="space-y-4">
+    <form onSubmit={onSubmit} className="space-y-4">
       {errorMessage ? (
         <div className={errorMessage.startsWith("Saved on this phone") ? "rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-600" : "rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600"}>{errorMessage}</div>
       ) : null}
+      {saved ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">{successMessage || "Sale recorded successfully."}</div> : null}
       <input type="hidden" name="items" value={JSON.stringify(lines.map((line) => ({ product_id: line.productId, quantity: line.quantity })))} />
       <input type="hidden" name="discount" value={discountAmount} />
 
@@ -207,8 +227,8 @@ export default function SaleForm({ products, customers = [], offlineMode = false
         Customer will pay later
       </label>
 
-      <button type="submit" disabled={pending || lines.length === 0} className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-[#635BFF] text-sm font-semibold text-white disabled:opacity-50">
-        {pending ? "Saving..." : saved ? "Saved" : offlineMode ? `Save offline · ₦${total.toLocaleString()}` : `Record Sale · ₦${total.toLocaleString()}`}
+      <button type="submit" disabled={pending || lines.length === 0} className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-[#635BFF] text-sm font-semibold text-white transition active:scale-[0.98] disabled:opacity-50">
+        {pending ? "Recording..." : saved ? "Done" : offlineMode ? `Save offline · ₦${total.toLocaleString()}` : `Record Sale · ₦${total.toLocaleString()}`}
       </button>
     </form>
   );

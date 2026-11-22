@@ -15,6 +15,7 @@ type FormData = z.infer<typeof productSchema>;
 export default function ProductForm() {
   const [errorMessage, setErrorMessage] = useState("");
   const [pending, setPending] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [image, setImage] = useState<File | null>(null);
 
   const form = useForm<z.input<typeof productSchema>, unknown, FormData>({
@@ -35,6 +36,8 @@ export default function ProductForm() {
       formData.append("category", data.category || "");
       if (image) formData.append("image", image);
       await createProductAction(formData);
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 2000);
       form.reset({ name: "", price: 0, cost_price: undefined, stock: 0, description: "", category: "" });
       setImage(null);
     } catch (error: unknown) {
@@ -49,6 +52,7 @@ export default function ProductForm() {
       {errorMessage ? (
         <div className="rounded-md border border-red-500 bg-red-500/10 p-3 text-sm text-red-400">{errorMessage}</div>
       ) : null}
+      {saved ? <p className="text-sm text-emerald-700">Product saved successfully.</p> : null}
       <div className="space-y-1.5">
         <Label className="text-zinc-600">Product</Label>
         <Input {...form.register("name")} placeholder="Ankara gown" />
@@ -90,7 +94,7 @@ export default function ProductForm() {
         <Label className="text-zinc-600">Photo</Label>
         <Input type="file" accept="image/*" onChange={(event) => setImage(event.target.files?.[0] || null)} />
       </div>
-      <Button type="submit" className="w-full" disabled={pending}>{pending ? "Saving..." : "Add product"}</Button>
+      <Button type="submit" className="w-full" disabled={pending}>{pending ? "Saving..." : saved ? "Saved" : "Add product"}</Button>
     </form>
   );
 }

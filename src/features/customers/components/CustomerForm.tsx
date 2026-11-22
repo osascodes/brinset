@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 export default function CustomerForm() {
   const [errorMessage, setErrorMessage] = useState("");
   const [pending, setPending] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   return (
     <form
@@ -19,6 +20,8 @@ export default function CustomerForm() {
         setPending(true);
         try {
           await createCustomerAction(formData);
+          setSaved(true);
+          window.setTimeout(() => setSaved(false), 2000);
           (document.getElementById("customer-form") as HTMLFormElement | null)?.reset();
         } catch (error: unknown) {
           setErrorMessage(error instanceof Error ? error.message : "Could not add customer.");
@@ -28,6 +31,7 @@ export default function CustomerForm() {
       }}
     >
       {errorMessage ? <p className="text-sm text-red-400">{errorMessage}</p> : null}
+      {saved ? <p className="text-sm text-emerald-700">Customer added successfully.</p> : null}
       <div className="space-y-1.5">
         <Label className="text-zinc-600">Name</Label>
         <Input name="name" placeholder="Chioma" required />
@@ -36,7 +40,7 @@ export default function CustomerForm() {
         <Label className="text-zinc-600">Phone</Label>
         <Input name="phone" placeholder="08012345678" required />
       </div>
-      <Button type="submit" className="w-full" disabled={pending}>{pending ? "Saving..." : "Add customer"}</Button>
+      <Button type="submit" className="w-full" disabled={pending}>{pending ? "Saving..." : saved ? "Saved" : "Add customer"}</Button>
     </form>
   );
 }
