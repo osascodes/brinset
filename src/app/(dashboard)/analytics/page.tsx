@@ -4,7 +4,7 @@ import { getCurrentBusiness } from "@/features/business/queries";
 import { getAnalytics } from "@/features/analytics/queries";
 import SavedStats from "@/features/analytics/components/SavedStats";
 import SalesOverview from "@/features/analytics/components/SalesOverview";
-import { BarChart2, Coins, Trophy, Wallet } from "lucide-react";
+import { ArrowRight, BarChart2, Coins, Trophy, Wallet } from "lucide-react";
 
 // Helper: compute a capped period-over-period % change.
 // Revenue/profit: green when positive, red when negative.
@@ -150,7 +150,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         <section className="mt-4 rounded-2xl border border-zinc-200 bg-white p-4">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold">Top-selling products</h2>
-            <a href="/sales" className="text-sm font-medium text-[#635BFF]">View all →</a>
+            <a href="/sales" className="inline-flex items-center gap-1 text-sm font-medium text-[#635BFF]">View all <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.25} /></a>
           </div>
           <div className="mt-3 space-y-4">
             {analytics.topProducts.length === 0 ? (

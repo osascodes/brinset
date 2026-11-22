@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Banknote, Bell, Box, Calendar, ChevronRight, ClipboardList, Lock, LogOut, Receipt, ShoppingBag, ShoppingCart, Store, TrendingUp, User, Wallet, X } from "lucide-react";
+import { ArrowRight, Banknote, Bell, Box, Calendar, ChevronRight, ClipboardList, Lock, LogOut, Receipt, ShoppingBag, ShoppingCart, Store, TrendingUp, User, Wallet, X } from "lucide-react";
 import { logoutAction } from "@/features/auth/actions";
 
 type Need = { id: string; title: string; detail: string; status: string; createdAt?: string; number?: string };
@@ -306,8 +306,8 @@ export default function SavedHome({ snapshot, offline = false, unreadAlerts = 0 
         <section className="mt-8">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-zinc-900">Recent activity</h2>
-            <Link href="/activity" className="flex items-center gap-1 text-sm font-medium text-[#635BFF] hover:underline">
-              View all →
+            <Link href="/activity" className="inline-flex items-center gap-1 text-sm font-medium text-[#635BFF] hover:underline">
+              View all <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.25} />
             </Link>
           </div>
           <div className="mt-4 space-y-3.5">

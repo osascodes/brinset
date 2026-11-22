@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { deleteSaleAction } from "@/features/sales/actions";
 
 type SaleItem = { name: string; quantity: number; price: number };
@@ -21,6 +22,24 @@ function ref(id: string) {
 function summary(items: SaleItem[]) {
   if (items.length === 0) return "Sale";
   return items.map((item) => `${item.name} × ${item.quantity}`).join(", ");
+}
+
+function formatWhen(value?: string, fallback = "") {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return fallback;
+  const datePart = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Africa/Lagos",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+  const timePart = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Africa/Lagos",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date);
+  return `${datePart} · ${timePart}`;
 }
 
 export default function SaleList({ sales, todayOnly = false }: { sales: Sale[]; todayOnly?: boolean }) {
@@ -81,19 +100,23 @@ export default function SaleList({ sales, todayOnly = false }: { sales: Sale[]; 
         filtered.map((sale) => {
           const count = sale.items.reduce((sum, item) => sum + Number(item.quantity), 0);
           return (
-            <div key={sale.id} className="rounded-xl border border-zinc-200 bg-white p-4">
+            <div key={sale.id} className="rounded-2xl border border-zinc-200 bg-white p-4">
               <div className="flex items-start justify-between gap-3">
-                <p className="text-sm font-semibold text-zinc-950">Sale #{ref(sale.id)}</p>
-                <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${sale.unpaid ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>{sale.unpaid ? "Unpaid" : "Paid"}</span>
+                <p className="text-lg font-semibold text-zinc-950">Sale #{ref(sale.id)}</p>
+                <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${sale.unpaid ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>{sale.unpaid ? "Unpaid" : "Paid"}</span>
               </div>
-              <p className="mt-1 text-xs text-zinc-500">{sale.when}</p>
-              <p className="mt-2 text-sm text-zinc-700">{summary(sale.items)}</p>
-              <div className="mt-3 flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-zinc-500">{count} item{count === 1 ? "" : "s"}</p>
-                  <p className="text-sm font-semibold text-zinc-950">₦{sale.total.toLocaleString()}</p>
+              <p className="mt-2 text-sm text-zinc-400">{formatWhen(sale.at, sale.when)}</p>
+              <p className="mt-3 text-base text-zinc-950">{summary(sale.items)}</p>
+              <div className="mt-4 border-t border-zinc-200 pt-3">
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-sm text-zinc-400">{count} item{count === 1 ? "" : "s"}</p>
+                    <p className="text-lg font-semibold text-zinc-950">₦{sale.total.toLocaleString()}</p>
+                  </div>
+                  <Link href={`/sales/${sale.id}`} className="inline-flex items-center gap-1 text-sm font-medium text-[#635BFF]">
+                    View receipt <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.25} />
+                  </Link>
                 </div>
-                <Link href={`/sales/${sale.id}`} className="text-sm font-medium text-[#635BFF]">View receipt →</Link>
               </div>
               <button
                 type="button"

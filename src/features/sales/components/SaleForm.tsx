@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Trash2 } from "lucide-react";
 import { recordSaleAction } from "@/features/sales/actions";
 import { SALE_CUSTOMERS, SALE_PRODUCTS, readQueue, writeQueue } from "@/features/sales/offline";
 
@@ -152,7 +153,7 @@ export default function SaleForm({ products, customers = [], offlineMode = false
                   </div>
                   <p className="text-sm font-medium text-zinc-950">₦{(unit * line.quantity).toLocaleString()}</p>
                   <button type="button" onClick={() => setLines((current) => current.filter((item) => item.productId !== line.productId))} className="text-rose-500" aria-label="Remove item">
-                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7h16" /><path d="M9 7V5h6v2" /><path d="M8 7l1 12h6l1-12" /></svg>
+                    <Trash2 className="h-4 w-4" strokeWidth={1.75} />
                   </button>
                 </div>
               );
