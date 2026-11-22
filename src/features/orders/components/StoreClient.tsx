@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { placeCartAction } from "@/features/orders/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,6 +89,16 @@ export default function StoreClient({
   const [successTotal, setSuccessTotal] = useState(0);
   const [pending, setPending] = useState(false);
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const locked = Boolean(selected || open);
+    if (!locked) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [selected, open]);
 
   const categories = ["All", ...Array.from(new Set(products.map((product) => product.category).filter(Boolean) as string[]))];
   const search = query.trim().toLowerCase();
@@ -194,14 +204,14 @@ export default function StoreClient({
           <p className={`mt-0.5 px-1 text-xs ${product.stock <= 0 ? "text-rose-600" : product.stock <= 5 ? "text-amber-600" : "text-emerald-600"}`}>{stock.label}</p>
         </button>
         {product.stock <= 0 ? (
-          <button type="button" disabled className="mt-3 h-11 w-full rounded-lg bg-zinc-100 text-sm font-semibold text-zinc-400">Out of stock</button>
+          <button type="button" disabled className="mt-3 h-12 w-full rounded-lg bg-zinc-100 text-sm font-semibold text-zinc-400">Out of stock</button>
         ) : qty === 0 ? (
-          <button type="button" onClick={() => setQty(product.id, 1)} className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#635BFF] text-sm font-semibold text-white">
+          <button type="button" onClick={() => setQty(product.id, 1)} className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#635BFF] text-sm font-semibold text-white">
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 6h15l-1.5 9h-12z" /><path d="M6 6 5 3H2" /><circle cx="9" cy="20" r="1" /><circle cx="18" cy="20" r="1" /></svg>
             Add to Cart
           </button>
         ) : (
-          <div className="mt-3 flex h-11 items-center justify-between rounded-lg bg-[#635BFF] px-2 text-white">
+          <div className="mt-3 flex h-12 items-center justify-between rounded-lg bg-[#635BFF] px-2 text-white">
             <button type="button" onClick={() => setQty(product.id, qty - 1)} className="flex h-8 w-8 items-center justify-center rounded-lg text-lg" aria-label="Decrease">−</button>
             <span className="text-sm font-semibold">{qty}</span>
             <button type="button" onClick={() => setQty(product.id, Math.min(product.stock, qty + 1))} className="flex h-8 w-8 items-center justify-center rounded-lg text-lg" aria-label="Increase">+</button>
@@ -229,7 +239,7 @@ export default function StoreClient({
   return (
     <main className="min-h-screen bg-white text-zinc-950">
       <div className="mx-auto max-w-lg sm:max-w-3xl">
-        <header className="flex items-center justify-between px-4 py-4">
+        <header className="sticky top-0 z-30 flex items-center justify-between bg-white px-4 py-4">
           <div className="flex min-w-0 items-center gap-3">
             {business.logo_url ? (
               <img src={business.logo_url} alt="" className="h-12 w-12 rounded-2xl object-cover" />
@@ -292,7 +302,7 @@ export default function StoreClient({
           <h2 className="text-2xl font-bold">{category === "All" ? "Our Products" : titleCase(category)}</h2>
           <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
             {([["all", "All"], ["new", "New Products"], ["best", "Best Sellers"]] as const).map(([id, label]) => (
-              <button key={id} type="button" onClick={() => setView(id)} className={`shrink-0 rounded-lg px-4 py-2 text-sm font-medium ${view === id ? "bg-[#635BFF] text-white" : "bg-zinc-100 text-zinc-700"}`}>{label}</button>
+              <button key={id} type="button" onClick={() => setView(id)} className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium ${view === id ? "bg-[#635BFF] text-white" : "bg-zinc-100 text-zinc-700"}`}>{label}</button>
             ))}
           </div>
           {shown.length === 0 ? (
@@ -344,7 +354,7 @@ export default function StoreClient({
           href={shopWhatsapp}
           target="_blank"
           aria-label="WhatsApp"
-          className="fixed z-40 flex h-14 w-14 items-center justify-center rounded-lg bg-[#25D366] text-white shadow-lg"
+          className="fixed z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg"
           style={waPos ? { left: waPos.x, top: waPos.y } : { right: 16, bottom: 24 }}
           onPointerDown={(event) => {
             const rect = event.currentTarget.getBoundingClientRect();
@@ -369,7 +379,7 @@ export default function StoreClient({
       ) : null}
 
       {selected ? (
-        <div className="fixed inset-0 z-40 bg-black/70" onClick={() => setSelected(null)}>
+        <div className="fixed inset-0 z-50 bg-black/70" onClick={() => setSelected(null)}>
           <div className="absolute inset-x-0 bottom-0 max-h-[92vh] overflow-y-auto rounded-t-3xl bg-white p-5 sm:inset-y-0 sm:left-auto sm:right-0 sm:w-[440px] sm:rounded-none" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Product</h2>
@@ -395,9 +405,12 @@ export default function StoreClient({
               </div>
             </div>
             <div className="mt-6 space-y-2">
-              <Button type="button" className="w-full" disabled={selected.stock <= 0} onClick={() => { setQty(selected.id, detailQty); setSelected(null); }}>
-                {selected.stock <= 0 ? "Out of stock" : "Add to cart"}
-              </Button>
+              <button type="button" disabled={selected.stock <= 0} onClick={() => { setQty(selected.id, detailQty); setSelected(null); }} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#635BFF] text-sm font-semibold text-white disabled:bg-zinc-100 disabled:text-zinc-400">
+                {selected.stock <= 0 ? null : (
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 6h15l-1.5 9h-12z" /><path d="M6 6 5 3H2" /><circle cx="9" cy="20" r="1" /><circle cx="18" cy="20" r="1" /></svg>
+                )}
+                {selected.stock <= 0 ? "Out of stock" : "Add to Cart"}
+              </button>
               {shopWhatsapp && selected.stock > 0 ? (
                 <a
                   href={`https://wa.me/${whatsappNumber(business.phone || "")}?text=${encodeURIComponent(`Hi ${business.name}, I want ${detailQty} x ${selected.name}.`)}`}
@@ -413,7 +426,7 @@ export default function StoreClient({
       ) : null}
 
       {open ? (
-        <div className="fixed inset-0 z-30 bg-black/70" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-40 bg-black/70" onClick={() => setOpen(false)}>
           <div className="absolute inset-x-0 bottom-0 max-h-[90vh] overflow-y-auto rounded-t-3xl bg-white p-5 sm:inset-y-0 sm:left-auto sm:right-0 sm:w-[420px] sm:rounded-none" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">{orderNumber ? "Order sent" : "Your cart"}</h2>

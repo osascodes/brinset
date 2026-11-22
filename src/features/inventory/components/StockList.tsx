@@ -46,7 +46,7 @@ export default function StockList({ products, highlightLow = false }: { products
       {categories.length > 1 ? (
         <div className="flex gap-2 overflow-x-auto pb-1">
           {categories.map((item) => (
-            <button key={item} type="button" onClick={() => setCategory(item)} className={`shrink-0 rounded-lg px-3 py-1 text-xs font-medium ${category === item ? "bg-[#635BFF] text-white" : "bg-zinc-100 text-zinc-600"}`}>{item}</button>
+            <button key={item} type="button" onClick={() => setCategory(item)} className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${category === item ? "bg-[#635BFF] text-white" : "bg-zinc-100 text-zinc-600"}`}>{item}</button>
           ))}
         </div>
       ) : null}

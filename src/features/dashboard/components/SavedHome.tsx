@@ -206,7 +206,7 @@ export default function SavedHome({ snapshot, offline = false, unreadAlerts = 0 
             </div>
           </div>
           <div className="relative flex items-center gap-2">
-            <Link href="/notifications" className="relative flex h-10 w-10 items-center justify-center rounded-lg bg-white border border-zinc-100 shadow-sm" aria-label="Notifications">
+            <Link href="/notifications" className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white border border-zinc-100 shadow-sm" aria-label="Notifications">
               <Bell className="h-5 w-5 text-zinc-800" />
               {unreadAlerts > 0 ? <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white" /> : null}
             </Link>
