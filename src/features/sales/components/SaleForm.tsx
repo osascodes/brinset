@@ -3,13 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { recordSaleAction } from "@/features/sales/actions";
 import { SALE_CUSTOMERS, SALE_PRODUCTS, readQueue, writeQueue } from "@/features/sales/offline";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 type Product = { id: string; name: string; price: number; stock: number };
 type Customer = { id: string; name: string };
 type Line = { productId: string; quantity: number };
+
+const field = "h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-950 outline-none focus:border-[#635BFF]";
 
 export default function SaleForm({ products, customers = [], offlineMode = false }: { products: Product[]; customers?: Customer[]; offlineMode?: boolean }) {
   const [errorMessage, setErrorMessage] = useState("");
@@ -19,9 +18,10 @@ export default function SaleForm({ products, customers = [], offlineMode = false
   const [quantity, setQuantity] = useState(1);
   const [lines, setLines] = useState<Line[]>([]);
   const [onCredit, setOnCredit] = useState(false);
-  const [discount, setDiscount] = useState(0);
+  const [discountValue, setDiscountValue] = useState(0);
+  const [discountMode, setDiscountMode] = useState<"fixed" | "percent">("fixed");
 
-  const total = useMemo(
+  const subtotal = useMemo(
     () =>
       lines.reduce((sum, line) => {
         const product = products.find((item) => item.id === line.productId);
@@ -29,6 +29,8 @@ export default function SaleForm({ products, customers = [], offlineMode = false
       }, 0),
     [lines, products],
   );
+  const discountAmount = discountMode === "percent" ? Math.min(subtotal, (subtotal * discountValue) / 100) : Math.min(subtotal, discountValue);
+  const total = Math.max(subtotal - discountAmount, 0);
 
   useEffect(() => {
     if (products.length > 0) localStorage.setItem(SALE_PRODUCTS, JSON.stringify(products));
@@ -44,13 +46,17 @@ export default function SaleForm({ products, customers = [], offlineMode = false
       setErrorMessage("Quantity must be at least 1");
       return;
     }
+    const product = products.find((item) => item.id === productId);
+    const already = lines.find((line) => line.productId === productId)?.quantity || 0;
+    if (product && already + quantity > product.stock) {
+      setErrorMessage(`Only ${product.stock} left for ${product.name}`);
+      return;
+    }
     setErrorMessage("");
     setLines((current) => {
       const existing = current.find((line) => line.productId === productId);
       if (existing) {
-        return current.map((line) =>
-          line.productId === productId ? { ...line, quantity: line.quantity + quantity } : line,
-        );
+        return current.map((line) => (line.productId === productId ? { ...line, quantity: line.quantity + quantity } : line));
       }
       return [...current, { productId, quantity }];
     });
@@ -67,24 +73,29 @@ export default function SaleForm({ products, customers = [], offlineMode = false
         items: lines.map((line) => ({ product_id: line.productId, quantity: line.quantity })),
         customer_id: String(formData.get("customer_id") || ""),
         on_credit: formData.get("on_credit") === "on",
-        discount: Number(formData.get("discount") || 0),
-        label: lines.map((line) => {
-          const product = products.find((item) => item.id === line.productId);
-          return `${line.quantity} x ${product?.name || "Item"}`;
-        }).join(", "),
+        discount: discountAmount,
+        label: lines
+          .map((line) => {
+            const product = products.find((item) => item.id === line.productId);
+            return `${line.quantity} x ${product?.name || "Item"}`;
+          })
+          .join(", "),
         total,
       };
       if (offlineMode || !navigator.onLine) {
         if (payload.on_credit && !payload.customer_id) throw new Error("Pick a customer for a credit sale");
         writeQueue([...readQueue(), payload]);
         setLines([]);
+        setDiscountValue(0);
         setErrorMessage("Saved on this phone. It will send when the network returns.");
         return;
       }
+      formData.set("discount", String(discountAmount));
       await recordSaleAction(formData);
-          setSaved(true);
-          window.setTimeout(() => setSaved(false), 2000);
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 2000);
       setLines([]);
+      setDiscountValue(0);
     } catch (error: unknown) {
       setErrorMessage(error instanceof Error ? error.message : "Could not record sale.");
     } finally {
@@ -93,15 +104,21 @@ export default function SaleForm({ products, customers = [], offlineMode = false
   };
 
   return (
-    <form action={onSubmit} className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-5">
+    <form action={onSubmit} className="space-y-4">
       {errorMessage ? (
-        <div className={errorMessage.startsWith("Saved on this phone") ? "rounded-md border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-600" : "rounded-md border border-red-500 bg-red-500/10 p-3 text-sm text-red-400"}>{errorMessage}</div>
+        <div className={errorMessage.startsWith("Saved on this phone") ? "rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-600" : "rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600"}>{errorMessage}</div>
       ) : null}
       <input type="hidden" name="items" value={JSON.stringify(lines.map((line) => ({ product_id: line.productId, quantity: line.quantity })))} />
+      <input type="hidden" name="discount" value={discountAmount} />
+
+      <div>
+        <h2 className="text-base font-semibold text-zinc-950">New Sale</h2>
+      </div>
+
       <div className="space-y-1.5">
-        <Label className="text-zinc-600">Product</Label>
-        <select value={productId} onChange={(event) => setProductId(event.target.value)} className="h-10 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-950">
-          <option value="">Select a product</option>
+        <label className="text-sm font-medium text-zinc-900">Product</label>
+        <select value={productId} onChange={(event) => setProductId(event.target.value)} className={field}>
+          <option value="">Choose a product</option>
           {products.map((product) => (
             <option key={product.id} value={product.id}>
               {product.name} · ₦{Number(product.price).toLocaleString()} · {product.stock} left
@@ -109,47 +126,89 @@ export default function SaleForm({ products, customers = [], offlineMode = false
           ))}
         </select>
       </div>
+
       <div className="space-y-1.5">
-        <Label className="text-zinc-600">Quantity</Label>
-        <Input value={quantity} onChange={(event) => setQuantity(Number(event.target.value))} type="number" min="1" step="1" />
+        <label className="text-sm font-medium text-zinc-900">Quantity</label>
+        <div className="flex items-center gap-2">
+          <input value={quantity} onChange={(event) => setQuantity(Number(event.target.value))} type="number" min="1" step="1" className={field} />
+          <button type="button" onClick={addLine} className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-[#635BFF] px-4 text-sm font-semibold text-white">
+            + Add item
+          </button>
+        </div>
       </div>
-      <button type="button" onClick={addLine} className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-white text-sm font-semibold text-zinc-950">
-        Add item
-      </button>
+
       {lines.length > 0 ? (
-        <div className="space-y-2 border-t border-zinc-200 pt-3">
-          {lines.map((line) => {
-            const product = products.find((item) => item.id === line.productId);
-            return (
-              <div key={line.productId} className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-zinc-950">{line.quantity} x {product?.name || "Item"}</span>
-                <button type="button" onClick={() => setLines((current) => current.filter((item) => item.productId !== line.productId))} className="text-zinc-500">Remove</button>
-              </div>
-            );
-          })}
-          <p className="text-sm font-semibold text-zinc-950">Total ₦{Math.max(total - discount, 0).toLocaleString()}</p>
+        <div>
+          <h3 className="text-sm font-semibold text-zinc-950">Items in this sale</h3>
+          <div className="mt-2 divide-y divide-zinc-100 rounded-xl border border-zinc-200">
+            {lines.map((line) => {
+              const product = products.find((item) => item.id === line.productId);
+              const unit = Number(product?.price || 0);
+              return (
+                <div key={line.productId} className="flex items-center gap-3 px-3 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-zinc-950">{product?.name || "Item"}</p>
+                    <p className="text-xs text-zinc-500">₦{unit.toLocaleString()} × {line.quantity}</p>
+                  </div>
+                  <p className="text-sm font-medium text-zinc-950">₦{(unit * line.quantity).toLocaleString()}</p>
+                  <button type="button" onClick={() => setLines((current) => current.filter((item) => item.productId !== line.productId))} className="text-rose-500" aria-label="Remove item">
+                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7h16" /><path d="M9 7V5h6v2" /><path d="M8 7l1 12h6l1-12" /></svg>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
       ) : null}
-      <div className="space-y-1.5">
-        <Label className="text-zinc-600">Discount</Label>
-        <Input name="discount" type="number" min="0" step="0.01" value={discount || ""} onChange={(event) => setDiscount(Number(event.target.value) || 0)} placeholder="0" />
+
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-zinc-600">Subtotal</span>
+        <span className="font-medium text-zinc-950">₦{subtotal.toLocaleString()}</span>
       </div>
+
       <div className="space-y-1.5">
-        <Label className="text-zinc-600">Customer</Label>
-        <select name="customer_id" required={onCredit} className="h-10 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-950">
-          <option value="">No customer</option>
+        <label className="text-sm font-medium text-zinc-900">Discount</label>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={discountValue || ""}
+            onChange={(event) => setDiscountValue(Number(event.target.value) || 0)}
+            placeholder="Enter discount"
+            className={field}
+          />
+          <select value={discountMode} onChange={(event) => setDiscountMode(event.target.value as "fixed" | "percent")} className="h-10 w-28 shrink-0 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-950 outline-none focus:border-[#635BFF]">
+            <option value="fixed">₦ Fixed</option>
+            <option value="percent">% Percent</option>
+          </select>
+        </div>
+        <p className="text-xs text-zinc-500">Choose a fixed amount or percentage discount.</p>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <span className="text-base font-semibold text-zinc-950">Total</span>
+        <span className="text-lg font-semibold text-zinc-950">₦{total.toLocaleString()}</span>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-zinc-900">Customer</label>
+        <select name="customer_id" required={onCredit} className={field}>
+          <option value="">Select customer or no customer</option>
           {customers.map((customer) => (
             <option key={customer.id} value={customer.id}>{customer.name}</option>
           ))}
         </select>
       </div>
-      <label className="flex items-center gap-2 text-sm text-zinc-600">
-        <input type="checkbox" name="on_credit" checked={onCredit} onChange={(event) => setOnCredit(event.target.checked)} />
+
+      <label className="flex items-center gap-2 text-sm text-zinc-700">
+        <input type="checkbox" name="on_credit" checked={onCredit} onChange={(event) => setOnCredit(event.target.checked)} className="h-4 w-4 rounded border-zinc-300 accent-[#635BFF]" />
         Customer will pay later
       </label>
-      <Button type="submit" className="w-full bg-[#635BFF] text-white" disabled={pending || lines.length === 0}>
-        {pending ? "Saving..." : saved ? "Saved" : offlineMode ? "Save offline" : onCredit ? "Record credit sale" : "Record sale"}
-      </Button>
+
+      <button type="submit" disabled={pending || lines.length === 0} className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-[#635BFF] text-sm font-semibold text-white disabled:opacity-50">
+        {pending ? "Saving..." : saved ? "Saved" : offlineMode ? `Save offline · ₦${total.toLocaleString()}` : `Record Sale · ₦${total.toLocaleString()}`}
+      </button>
     </form>
   );
 }

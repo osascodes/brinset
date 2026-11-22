@@ -8,12 +8,26 @@ export async function getRecentSales() {
   const supabase = await createServerSupabase();
   const { data } = await supabase
     .from("sales")
-    .select("id, total, created_at, sale_items(name, quantity, price)")
+    .select("id, total, discount, created_at, customer_id, customers(name), sale_items(name, quantity, price)")
     .eq("business_id", business.id)
     .order("created_at", { ascending: false })
-    .limit(20);
+    .limit(30);
 
-  return data ?? [];
+  const sales = data ?? [];
+  const ids = sales.map((sale) => sale.id);
+  const { data: debts } = ids.length
+    ? await supabase.from("debts").select("sale_id, amount, paid").eq("business_id", business.id).in("sale_id", ids)
+    : { data: [] };
+  const unpaid = new Set(
+    (debts ?? [])
+      .filter((debt) => debt.sale_id && Number(debt.amount) - Number(debt.paid) > 0)
+      .map((debt) => debt.sale_id),
+  );
+
+  return sales.map((sale) => ({
+    ...sale,
+    unpaid: unpaid.has(sale.id),
+  }));
 }
 
 export async function getTodaySalesTotal(day = new Date()) {

@@ -17,7 +17,7 @@ export default async function ReceiptPage({
   const supabase = await createServerSupabase();
   const { data: sale } = await supabase
     .from("sales")
-    .select("id, total, discount, created_at, sale_items(name, quantity, price)")
+    .select("id, total, discount, created_at, customers(name), sale_items(name, quantity, price)")
     .eq("id", id)
     .eq("business_id", business.id)
     .maybeSingle();
@@ -26,6 +26,9 @@ export default async function ReceiptPage({
 
   const items = sale.sale_items ?? [];
   const when = new Date(sale.created_at).toLocaleString();
+  const subtotal = items.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
+  const customer = Array.isArray(sale.customers) ? sale.customers[0] : sale.customers;
+  const customerName = customer?.name || "";
   const receiptNo = sale.id.slice(0, 8).toUpperCase();
   const message = [
     business.name,
@@ -63,6 +66,7 @@ export default async function ReceiptPage({
             <span>{receiptNo}</span>
             <span>{when}</span>
           </div>
+          {customerName ? <p className="mt-3 text-sm text-zinc-600">Customer: {customerName}</p> : null}
           <div className="mt-6 space-y-4 border-t border-dashed border-zinc-200 pt-4">
             {items.map((item, index) => (
               <div key={`${item.name}-${index}`} className="flex items-start justify-between gap-3 text-sm">
@@ -74,8 +78,15 @@ export default async function ReceiptPage({
               </div>
             ))}
           </div>
+          <div className="mt-4 flex items-center justify-between text-sm text-zinc-600">
+            <span>Subtotal</span>
+            <span>₦{subtotal.toLocaleString()}</span>
+          </div>
           {Number(sale.discount) > 0 ? (
-            <p className="mt-4 text-sm text-zinc-500">Discount ₦{Number(sale.discount).toLocaleString()}</p>
+            <div className="mt-1 flex items-center justify-between text-sm text-zinc-500">
+              <span>Discount</span>
+              <span>−₦{Number(sale.discount).toLocaleString()}</span>
+            </div>
           ) : null}
           <div className="mt-6 flex items-center justify-between border-t border-dashed border-zinc-200 pt-4 text-lg font-semibold">
             <span>Total</span>

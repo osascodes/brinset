@@ -28,9 +28,10 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
     }
     if (offline) {
       return (
-        <main className="px-4 py-8 md:px-8">
-          <div className="mx-auto max-w-5xl">
+        <main className="px-4 py-6 md:px-8">
+          <div className="mx-auto max-w-xl">
             <h1 className="text-2xl font-semibold text-zinc-950">Sales</h1>
+            <p className="mt-1 text-sm text-zinc-500">Record and manage your sales</p>
             <p className="mt-2 text-sm text-zinc-500">Offline. New sales stay on this phone until the network returns.</p>
             <OfflineSales />
             <div className="mt-8">
@@ -55,25 +56,28 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <SavedList storageKey="bizflow-sales" title="Sales" subtitle="Saved for offline." items={saved} />
-      <main className="px-4 py-8 md:px-8">
-        <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[320px_1fr]">
+      <main className="px-4 py-6 md:px-8">
+        <div className="mx-auto max-w-xl space-y-8">
           <div>
             <h1 className="text-2xl font-semibold text-zinc-950">Sales</h1>
-            <p className="mt-2 text-sm text-zinc-400">Record a sale. Stock goes down immediately.</p>
-            <div className="mt-6">
-              <SaleForm products={products} customers={customers} />
-            </div>
+            <p className="mt-1 text-sm text-zinc-500">Record and manage your sales</p>
           </div>
+          <SaleForm products={products} customers={customers} />
           <SaleList
             todayOnly={todayOnly}
             sales={sales.map((sale) => {
               const items = sale.sale_items ?? [];
               return {
                 id: sale.id,
-                title: items.length > 1 ? `${items.length} items` : items[0] ? `${items[0].quantity} x ${items[0].name}` : "Sale",
                 when: new Date(sale.created_at).toLocaleString(),
                 at: sale.created_at,
                 total: Number(sale.total),
+                unpaid: Boolean(sale.unpaid),
+                items: items.map((item: { name: string; quantity: number; price: number }) => ({
+                  name: item.name,
+                  quantity: Number(item.quantity),
+                  price: Number(item.price),
+                })),
               };
             })}
           />
