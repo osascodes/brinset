@@ -206,7 +206,7 @@ export default function StoreClient({
         {product.stock <= 0 ? (
           <button type="button" disabled className="mt-3 h-12 w-full rounded-lg bg-zinc-100 text-sm font-semibold text-zinc-400">Out of stock</button>
         ) : qty === 0 ? (
-          <button type="button" onClick={() => setQty(product.id, 1)} className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#635BFF] text-sm font-semibold text-white">
+          <button type="button" onClick={() => setQty(product.id, 1)} className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#635BFF] text-sm font-semibold text-white">
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 6h15l-1.5 9h-12z" /><path d="M6 6 5 3H2" /><circle cx="9" cy="20" r="1" /><circle cx="18" cy="20" r="1" /></svg>
             Add to Cart
           </button>
@@ -405,7 +405,7 @@ export default function StoreClient({
               </div>
             </div>
             <div className="mt-6 space-y-2">
-              <button type="button" disabled={selected.stock <= 0} onClick={() => { setQty(selected.id, detailQty); setSelected(null); }} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#635BFF] text-sm font-semibold text-white disabled:bg-zinc-100 disabled:text-zinc-400">
+              <button type="button" disabled={selected.stock <= 0} onClick={() => { setQty(selected.id, detailQty); setSelected(null); }} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#635BFF] text-sm font-semibold text-white disabled:bg-zinc-100 disabled:text-zinc-400">
                 {selected.stock <= 0 ? null : (
                   <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 6h15l-1.5 9h-12z" /><path d="M6 6 5 3H2" /><circle cx="9" cy="20" r="1" /><circle cx="18" cy="20" r="1" /></svg>
                 )}
@@ -415,7 +415,7 @@ export default function StoreClient({
                 <a
                   href={`https://wa.me/${whatsappNumber(business.phone || "")}?text=${encodeURIComponent(`Hi ${business.name}, I want ${detailQty} x ${selected.name}.`)}`}
                   target="_blank"
-                  className="inline-flex h-10 w-full items-center justify-center rounded-md border border-zinc-200 text-sm font-medium"
+                  className="inline-flex h-11 w-full items-center justify-center rounded-md border border-zinc-200 text-sm font-medium"
                 >
                   Order via WhatsApp
                 </a>
