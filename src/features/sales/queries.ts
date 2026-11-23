@@ -2,32 +2,37 @@ import { createServerSupabase } from "@/lib/supabase/server";
 import { getCurrentBusiness } from "@/features/business/queries";
 
 export async function getRecentSales() {
-  const business = await getCurrentBusiness();
-  if (!business) return [];
+  try {
+    const business = await getCurrentBusiness();
+    if (!business) return [];
 
-  const supabase = await createServerSupabase();
-  const { data } = await supabase
-    .from("sales")
-    .select("id, total, discount, created_at, customer_id, customers(name), sale_items(name, quantity, price)")
-    .eq("business_id", business.id)
-    .order("created_at", { ascending: false })
-    .limit(30);
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase
+      .from("sales")
+      .select("id, total, discount, created_at, customer_id, sale_items(name, quantity, price)")
+      .eq("business_id", business.id)
+      .order("created_at", { ascending: false })
+      .limit(30);
+    if (error) return [];
 
-  const sales = data ?? [];
-  const ids = sales.map((sale) => sale.id);
-  const { data: debts } = ids.length
-    ? await supabase.from("debts").select("sale_id, amount, paid").eq("business_id", business.id).in("sale_id", ids)
-    : { data: [] };
-  const unpaid = new Set(
-    (debts ?? [])
-      .filter((debt) => debt.sale_id && Number(debt.amount) - Number(debt.paid) > 0)
-      .map((debt) => debt.sale_id),
-  );
+    const sales = data ?? [];
+    const ids = sales.map((sale) => sale.id);
+    const { data: debts } = ids.length
+      ? await supabase.from("debts").select("sale_id, amount, paid").eq("business_id", business.id).in("sale_id", ids)
+      : { data: [] };
+    const unpaid = new Set(
+      (debts ?? [])
+        .filter((debt) => debt.sale_id && Number(debt.amount) - Number(debt.paid) > 0)
+        .map((debt) => debt.sale_id),
+    );
 
-  return sales.map((sale) => ({
-    ...sale,
-    unpaid: unpaid.has(sale.id),
-  }));
+    return sales.map((sale) => ({
+      ...sale,
+      unpaid: unpaid.has(sale.id),
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export async function getTodaySalesTotal(day = new Date()) {

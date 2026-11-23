@@ -44,9 +44,18 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
     redirect("/onboarding");
   }
 
-  const products = await getProducts();
-  const sales = await getRecentSales();
-  const customers = await getCustomers();
+  let products = [];
+  let sales = [];
+  let customers = [];
+  try {
+    products = await getProducts();
+    sales = await getRecentSales();
+    customers = await getCustomers();
+  } catch {
+    products = [];
+    sales = [];
+    customers = [];
+  }
   const saved = sales.map((sale) => {
     const items = sale.sale_items ?? [];
     const title = items.length > 1 ? `${items.length} items` : items[0] ? `${items[0].quantity} x ${items[0].name}` : "Sale";

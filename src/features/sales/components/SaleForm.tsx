@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { recordSaleAction } from "@/features/sales/actions";
-import { toast } from "@/components/Toast";
 import { SALE_CUSTOMERS, SALE_PRODUCTS, readQueue, writeQueue } from "@/features/sales/offline";
 
 type Product = { id: string; name: string; price: number; stock: number };
@@ -18,7 +17,6 @@ export default function SaleForm({ products, customers = [], offlineMode = false
   const [errorMessage, setErrorMessage] = useState("");
   const [pending, setPending] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
   const [productId, setProductId] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [lines, setLines] = useState<Line[]>([]);
@@ -74,7 +72,6 @@ export default function SaleForm({ products, customers = [], offlineMode = false
     setErrorMessage("");
     setPending(true);
     setSaved(false);
-    setSuccessMessage("");
     const formData = new FormData(event.currentTarget);
     const customerId = String(formData.get("customer_id") || "");
     formData.set("discount", String(discountAmount));
@@ -101,7 +98,6 @@ export default function SaleForm({ products, customers = [], offlineMode = false
         setDiscountValue(0);
         setOnCredit(false);
         setErrorMessage("Saved on this phone. It will send when the network returns.");
-        toast("Saved on this phone.");
         return;
       }
       await recordSaleAction(formData);
@@ -109,15 +105,10 @@ export default function SaleForm({ products, customers = [], offlineMode = false
       setLines([]);
       setDiscountValue(0);
       setOnCredit(false);
-      const message = onCredit ? "Credit sale recorded. Marked unpaid." : "Sale recorded successfully.";
-      setSuccessMessage(message);
-      toast(message);
       router.refresh();
       window.setTimeout(() => setSaved(false), 2500);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Could not record sale.";
-      setErrorMessage(message);
-      toast(message, "error");
+      setErrorMessage(error instanceof Error ? error.message : "Could not record sale.");
     } finally {
       setPending(false);
     }
@@ -128,7 +119,6 @@ export default function SaleForm({ products, customers = [], offlineMode = false
       {errorMessage ? (
         <div className={errorMessage.startsWith("Saved on this phone") ? "rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-600" : "rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600"}>{errorMessage}</div>
       ) : null}
-      {saved ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">{successMessage || "Sale recorded successfully."}</div> : null}
       <input type="hidden" name="items" value={JSON.stringify(lines.map((line) => ({ product_id: line.productId, quantity: line.quantity })))} />
       <input type="hidden" name="discount" value={discountAmount} />
 
@@ -214,7 +204,7 @@ export default function SaleForm({ products, customers = [], offlineMode = false
 
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-zinc-900">Customer</label>
-        <select name="customer_id" required={onCredit} className={field}>
+        <select name="customer_id" className={field}>
           <option value="">Select customer or no customer</option>
           {customers.map((customer) => (
             <option key={customer.id} value={customer.id}>{customer.name}</option>
