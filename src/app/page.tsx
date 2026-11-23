@@ -209,13 +209,13 @@ export default function Home() {
             <Pill>All-in-one business management platform</Pill>
 
             <h1 className="mt-5 text-[2.5rem] font-extrabold leading-[1.1] tracking-tight text-zinc-950 sm:text-5xl lg:text-[3.3rem]">
-              Your business,{" "}
+              Your business{" "}
               <span className="text-[#635BFF]">organised</span>{" "}
-              in one place.
+              in one place
             </h1>
 
             <p className="mx-auto mt-5 max-w-md text-base leading-7 text-zinc-500 lg:mx-0">
-              Manage sales, inventory, orders, customers and business
+              Manage sales, inventory, orders, customers, and business
               performance from one simple platform.
             </p>
 
@@ -237,7 +237,7 @@ export default function Home() {
             </div>
 
             <div className="mt-7 flex flex-wrap items-center justify-center gap-6 lg:justify-start">
-              {["No credit card required", "Set up in minutes", "Free forever plan"].map((t) => (
+              {["No credit card required", "Set up in minutes", "14-day free trial"].map((t) => (
                 <span key={t} className="flex items-center gap-1.5 text-xs text-zinc-400">
                   <CheckCircle2 size={13} className="text-[#635BFF]" strokeWidth={2.5} />
                   {t}
@@ -260,7 +260,6 @@ export default function Home() {
               <div className="flex items-center justify-between border-b border-zinc-100 bg-zinc-50/80 px-4 py-2.5">
                 <div className="flex items-center gap-2">
                   <img src="/brinset-logo.png" alt="Brinset" className="h-5 w-auto" />
-                  <span className="text-xs font-semibold text-zinc-700">Brinset</span>
                 </div>
                 <span className="rounded border border-zinc-200 bg-white px-2 py-0.5 text-[10px] text-zinc-400">
                   This week ▾
