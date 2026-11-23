@@ -2,7 +2,7 @@
   "name": "Brinset",
   "short_name": "Brinset",
   "description": "Run your business from your phone",
-  "start_url": "/dashboard",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",

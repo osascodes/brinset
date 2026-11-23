@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Navbar from "@/components/navbar";
+import PwaLaunch from "@/components/PwaLaunch";
 import FaqList from "@/components/marketing/FaqList";
 import {
   ShoppingCart,
@@ -187,6 +188,7 @@ function Check({ purple }: { purple?: boolean }) {
 export default function Home() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-white text-zinc-900">
+      <PwaLaunch />
       <Navbar />
 
       {/* ══════════════════════════════════════
