@@ -44,18 +44,11 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
     redirect("/onboarding");
   }
 
-  let products = [];
-  let sales = [];
-  let customers = [];
-  try {
-    products = await getProducts();
-    sales = await getRecentSales();
-    customers = await getCustomers();
-  } catch {
-    products = [];
-    sales = [];
-    customers = [];
-  }
+  const [products, sales, customers] = await Promise.all([
+    getProducts().catch(() => []),
+    getRecentSales().catch(() => []),
+    getCustomers().catch(() => []),
+  ]);
   const saved = sales.map((sale) => {
     const items = sale.sale_items ?? [];
     const title = items.length > 1 ? `${items.length} items` : items[0] ? `${items[0].quantity} x ${items[0].name}` : "Sale";
