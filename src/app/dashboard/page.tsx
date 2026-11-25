@@ -8,6 +8,8 @@ import { getOrdersToDo } from "@/features/orders/queries";
 import { redirect } from "next/navigation";
 import SavedHome from "@/features/dashboard/components/SavedHome";
 import { getAlertCount } from "@/features/notifications/queries";
+import { lagosDateKey, resolveDayKey } from "@/lib/dates";
+import { netProfit } from "@/features/finance/math";
 
 function money(value: number) {
   const amount = Number(value) || 0;
@@ -16,10 +18,9 @@ function money(value: number) {
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
   const params = await searchParams;
-  const selected = params.date && /^\d{4}-\d{2}-\d{2}$/.test(params.date) ? new Date(`${params.date}T00:00:00`) : new Date();
-  const isToday = new Date().toDateString() === selected.toDateString();
-  const dateLabel = isToday ? "Today" : selected.toLocaleDateString("en-NG", { day: "numeric", month: "short" });
-  const dateValue = selected.toISOString().slice(0, 10);
+  const dateValue = resolveDayKey(params.date);
+  const isToday = dateValue === lagosDateKey(new Date());
+  const dateLabel = isToday ? "Today" : new Date(`${dateValue}T12:00:00Z`).toLocaleDateString("en-NG", { day: "numeric", month: "short", timeZone: "Africa/Lagos" });
   const user = await getCurrentUser();
   let business = null;
   try {
@@ -49,17 +50,17 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   try {
     const [stock, sales, debts, costs, orders, lows, due, todays, costItems, debtItems, paymentItems, profit] = await Promise.all([
       getLowStockCount(),
-      getTodaySalesTotal(selected),
+      getTodaySalesTotal(dateValue),
       getDebtsDue(),
-      isOwner ? getTodayExpenses(selected) : Promise.resolve(0),
+      isOwner ? getTodayExpenses(dateValue) : Promise.resolve(0),
       getOrdersToDo(),
       getLowStock(),
       getDebtsOwed(),
-      getTodaySales(selected),
-      isOwner ? getTodayCosts(selected) : Promise.resolve([]),
+      getTodaySales(dateValue),
+      isOwner ? getTodayCosts(dateValue) : Promise.resolve([]),
       getRecentDebts(),
       getRecentDebtPayments(),
-      getTodayProfit(selected),
+      getTodayProfit(dateValue),
     ]);
     todayProfit = profit;
     lowStock = stock;
@@ -85,7 +86,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     todayCosts = [];
   }
 
-  const leftToday = todayProfit.revenue - todayProfit.cogs - costsToday;
+  const leftToday = netProfit(todayProfit.revenue, todayProfit.cogs, costsToday);
   const missingToday = todayProfit.missingUnits;
   const name = (user?.user_metadata?.full_name as string | undefined) || user?.email || "there";
   const salesLabel = isToday ? "Sales today" : `Sales ${dateLabel}`;

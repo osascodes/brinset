@@ -1,5 +1,7 @@
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getCurrentBusiness } from "@/features/business/queries";
+import { lagosDayRange, resolveDayKey } from "@/lib/dates";
+import { summarizeSales } from "@/features/finance/math";
 
 export async function getRecentSales() {
   try {
@@ -35,14 +37,10 @@ export async function getRecentSales() {
   }
 }
 
-export async function getTodaySalesTotal(day = new Date()) {
+export async function getTodaySalesTotal(day: Date | string = new Date()) {
   const business = await getCurrentBusiness();
   if (!business) return 0;
-
-  const start = new Date(day);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
+  const { start, end } = lagosDayRange(resolveDayKey(day));
 
   const supabase = await createServerSupabase();
   const { data } = await supabase
@@ -55,13 +53,10 @@ export async function getTodaySalesTotal(day = new Date()) {
   return (data ?? []).reduce((sum, sale) => sum + Number(sale.total), 0);
 }
 
-export async function getTodaySales(day = new Date()) {
+export async function getTodaySales(day: Date | string = new Date()) {
   const business = await getCurrentBusiness();
   if (!business) return [];
-  const start = new Date(day);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
+  const { start, end } = lagosDayRange(resolveDayKey(day));
   const supabase = await createServerSupabase();
   const { data } = await supabase
     .from("sales")
@@ -79,13 +74,10 @@ export async function getTodaySales(day = new Date()) {
   }));
 }
 
-export async function getTodayProfit(day = new Date()) {
+export async function getTodayProfit(day: Date | string = new Date()) {
   const business = await getCurrentBusiness();
   if (!business) return { revenue: 0, cogs: 0, missingUnits: 0 };
-  const lagos = new Date(day.getTime() + 60 * 60 * 1000);
-  const start = new Date(Date.UTC(lagos.getUTCFullYear(), lagos.getUTCMonth(), lagos.getUTCDate()) - 60 * 60 * 1000);
-  const end = new Date(start);
-  end.setUTCDate(end.getUTCDate() + 1);
+  const { start, end } = lagosDayRange(resolveDayKey(day));
   const supabase = await createServerSupabase();
   const { data } = await supabase
     .from("sales")
@@ -93,26 +85,14 @@ export async function getTodayProfit(day = new Date()) {
     .eq("business_id", business.id)
     .gte("created_at", start.toISOString())
     .lt("created_at", end.toISOString());
-  let revenue = 0;
-  let cogs = 0;
-  let missingUnits = 0;
-  for (const sale of data ?? []) {
-    revenue += Number(sale.total);
-    for (const item of sale.sale_items ?? []) {
-      if (item.cost_price == null) missingUnits += Number(item.quantity);
-      else cogs += Number(item.cost_price) * Number(item.quantity);
-    }
-  }
-  return { revenue, cogs, missingUnits };
+  const summary = summarizeSales(data ?? []);
+  return { revenue: summary.revenue, cogs: summary.cogs, missingUnits: summary.missingUnits };
 }
 
-export async function getDayClose(day = new Date()) {
+export async function getDayClose(day: Date | string = new Date()) {
   const business = await getCurrentBusiness();
   if (!business) return null;
-  const lagos = new Date(day.getTime() + 60 * 60 * 1000);
-  const start = new Date(Date.UTC(lagos.getUTCFullYear(), lagos.getUTCMonth(), lagos.getUTCDate()) - 60 * 60 * 1000);
-  const end = new Date(start);
-  end.setUTCDate(end.getUTCDate() + 1);
+  const { start, end } = lagosDayRange(resolveDayKey(day));
   const supabase = await createServerSupabase();
   const [{ data: sales }, { data: expenses }, { data: payments }] = await Promise.all([
     supabase

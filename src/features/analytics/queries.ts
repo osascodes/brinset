@@ -1,90 +1,87 @@
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getCurrentBusiness } from "@/features/business/queries";
 import { getProducts } from "@/features/inventory/queries";
-
-const LAGOS_OFFSET_MS = 60 * 60 * 1000;
-
-function lagosDate(date: Date) {
-  return new Date(date.getTime() + LAGOS_OFFSET_MS);
-}
-
-function lagosStartUtc(year: number, month: number, day: number) {
-  return new Date(Date.UTC(year, month, day) - LAGOS_OFFSET_MS);
-}
-
-function currentWeekStart(now: Date) {
-  const lagos = lagosDate(now);
-  const day = lagos.getUTCDay();
-  const mondayOffset = day === 0 ? 6 : day - 1;
-  return lagosStartUtc(lagos.getUTCFullYear(), lagos.getUTCMonth(), lagos.getUTCDate() - mondayOffset);
-}
-
-function currentMonthStart(now: Date) {
-  const lagos = lagosDate(now);
-  return lagosStartUtc(lagos.getUTCFullYear(), lagos.getUTCMonth(), 1);
-}
-
-function previousMonthStart(now: Date) {
-  const lagos = lagosDate(now);
-  return lagosStartUtc(lagos.getUTCFullYear(), lagos.getUTCMonth() - 1, 1);
-}
-
-function dayKey(date: Date) {
-  const lagos = lagosDate(date);
-  return lagos.toISOString().slice(0, 10);
-}
+import { addDateKey, lagosDateKey, lagosDayRange, monthEndKey, monthStartKey, weekStartKey } from "@/lib/dates";
+import { netProfit, summarizeSales } from "@/features/finance/math";
 
 type SaleItem = { name: string; quantity: number; price: number; cost_price: number | null };
 type Sale = { id: string; total: number; created_at: string; sale_items: SaleItem[] | null };
+type Expense = { amount: number; created_at: string };
 
-function parseRequestedStart(value?: string) {
-  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
-  return lagosStartUtc(year, month - 1, day);
+const empty = {
+  weekSales: 0,
+  monthSales: 0,
+  weekCosts: 0,
+  netProfit: 0,
+  missingCostUnits: 0,
+  prevWeekSales: 0,
+  prevMonthSales: 0,
+  prevWeekCosts: 0,
+  prevNetProfit: 0,
+  days: [] as { label: string; date: number; total: number }[],
+  chartDays: [] as { key: string; label: string; date: number; total: number }[],
+  chartFrom: "",
+  chartTo: "",
+  chartRange: "7",
+  topProducts: [] as { name: string; quantity: number; amount: number; image: string }[],
+  lowStock: [] as { name: string; stock: number }[],
+};
+
+function inRange(createdAt: string, from: Date, to: Date) {
+  const created = new Date(createdAt);
+  return created >= from && created < to;
+}
+
+function sumSales(rows: Sale[], from: Date, to: Date) {
+  return rows.filter((sale) => inRange(sale.created_at, from, to)).reduce((sum, sale) => sum + Number(sale.total), 0);
+}
+
+function sumExpenses(rows: Expense[], from: Date, to: Date) {
+  return rows.filter((row) => inRange(row.created_at, from, to)).reduce((sum, row) => sum + Number(row.amount), 0);
 }
 
 export async function getAnalytics(from?: string, to?: string, range?: string) {
   const business = await getCurrentBusiness();
-  if (!business) {
-    return {
-      weekSales: 0,
-      monthSales: 0,
-      weekCosts: 0,
-      netProfit: 0,
-      missingCostUnits: 0,
-      prevWeekSales: 0,
-      prevMonthSales: 0,
-      prevWeekCosts: 0,
-      prevNetProfit: 0,
-      days: [],
-      chartDays: [],
-      chartFrom: "",
-      chartTo: "",
-      chartRange: "7",
-      topProducts: [],
-      lowStock: [],
-    };
+  if (!business) return empty;
+
+  const todayKey = lagosDateKey(new Date());
+  const selectedRange = ["today", "yesterday", "7", "30", "week", "month", "custom"].includes(range || "") ? range || "7" : "7";
+  const thisWeekStart = weekStartKey(todayKey);
+  const prevWeekStartKey = addDateKey(thisWeekStart, -7);
+  const thisMonthStart = monthStartKey(todayKey);
+  const prevMonthStartKey = monthStartKey(addDateKey(thisMonthStart, -1));
+  const prevMonthEndKey = monthEndKey(prevMonthStartKey);
+
+  let rangeStart = addDateKey(todayKey, -6);
+  let rangeEnd = todayKey;
+  if (selectedRange === "today") {
+    rangeStart = todayKey;
+    rangeEnd = todayKey;
+  } else if (selectedRange === "yesterday") {
+    rangeStart = addDateKey(todayKey, -1);
+    rangeEnd = rangeStart;
+  } else if (selectedRange === "30") {
+    rangeStart = addDateKey(todayKey, -29);
+    rangeEnd = todayKey;
+  } else if (selectedRange === "week") {
+    rangeStart = thisWeekStart;
+    rangeEnd = addDateKey(thisWeekStart, 6);
+  } else if (selectedRange === "month") {
+    rangeStart = thisMonthStart;
+    rangeEnd = monthEndKey(todayKey);
+  } else if (selectedRange === "custom" && from && to && /^\d{4}-\d{2}-\d{2}$/.test(from) && /^\d{4}-\d{2}-\d{2}$/.test(to)) {
+    rangeStart = from <= to ? from : to;
+    rangeEnd = from <= to ? to : from;
+    const span = Math.round((new Date(`${rangeEnd}T00:00:00Z`).getTime() - new Date(`${rangeStart}T00:00:00Z`).getTime()) / 86400000);
+    if (span > 61) rangeStart = addDateKey(rangeEnd, -61);
   }
 
-  const now = new Date();
-  const weekStart = currentWeekStart(now);
-  const prevWeekStart = new Date(weekStart);
-  prevWeekStart.setDate(prevWeekStart.getDate() - 7);
-  const monthStart = currentMonthStart(now);
-  const prevMonthStart = previousMonthStart(now);
-  const lagosTodayEarly = lagosDate(now);
-  const todayKeyEarly = new Date(Date.UTC(lagosTodayEarly.getUTCFullYear(), lagosTodayEarly.getUTCMonth(), lagosTodayEarly.getUTCDate()));
-  const addDays = (date: Date, days: number) => new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + days));
-  const selectedRange = ["today", "yesterday", "7", "30", "week", "month", "custom"].includes(range || "") ? range : "7";
-  let earlyStart = addDays(todayKeyEarly, -6);
-  if (selectedRange === "30") earlyStart = addDays(todayKeyEarly, -29);
-  if (selectedRange === "month") earlyStart = new Date(Date.UTC(todayKeyEarly.getUTCFullYear(), todayKeyEarly.getUTCMonth(), 1));
-  if (selectedRange === "custom") earlyStart = parseRequestedStart(from) || earlyStart;
-  const chartStart = new Date(now);
-  chartStart.setDate(chartStart.getDate() - 6);
-  const fetchStart = [prevMonthStart, prevWeekStart, chartStart, earlyStart].sort((a, b) => a.getTime() - b.getTime())[0];
+  const fetchStartKey = [prevMonthStartKey, prevWeekStartKey, rangeStart].sort()[0];
+  const fetchStart = lagosDayRange(fetchStartKey).start;
+  const weekRange = { from: lagosDayRange(thisWeekStart).start, to: lagosDayRange(addDateKey(thisWeekStart, 7)).start };
+  const prevWeekRange = { from: lagosDayRange(prevWeekStartKey).start, to: weekRange.from };
+  const monthRange = { from: lagosDayRange(thisMonthStart).start, to: lagosDayRange(addDateKey(monthEndKey(todayKey), 1)).start };
+  const prevMonthRange = { from: lagosDayRange(prevMonthStartKey).start, to: lagosDayRange(addDateKey(prevMonthEndKey, 1)).start };
 
   const supabase = await createServerSupabase();
   const [{ data: sales }, { data: expenses }, products] = await Promise.all([
@@ -97,128 +94,48 @@ export async function getAnalytics(from?: string, to?: string, range?: string) {
       .from("expenses")
       .select("amount, created_at")
       .eq("business_id", business.id)
-      .gte("created_at", prevWeekStart.toISOString()),
+      .gte("created_at", fetchStart.toISOString()),
     getProducts(),
   ]);
 
   const rows = (sales ?? []) as Sale[];
-  const sumSales = (from: Date, to?: Date) =>
-    rows
-      .filter((sale) => {
-        const created = new Date(sale.created_at);
-        return created >= from && (!to || created < to);
-      })
-      .reduce((sum, sale) => sum + Number(sale.total), 0);
-
-  const sumExpenses = (from: Date, to?: Date) =>
-    (expenses ?? [])
-      .filter((row) => {
-        const created = new Date(row.created_at);
-        return created >= from && (!to || created < to);
-      })
-      .reduce((sum, row) => sum + Number(row.amount), 0);
-
-  const profitFor = (from: Date, to?: Date) => {
-    let cogs = 0;
-    let missing = 0;
-    for (const sale of rows) {
-      const created = new Date(sale.created_at);
-      if (created < from || (to && created >= to)) continue;
-      for (const item of sale.sale_items ?? []) {
-        if (item.cost_price == null) {
-          missing += Number(item.quantity);
-          continue;
-        }
-        cogs += Number(item.cost_price) * Number(item.quantity);
-      }
-    }
-    return { cogs, missing };
-  };
-
-  const weekSales = sumSales(weekStart);
-  const monthSales = sumSales(monthStart);
-  const prevWeekSales = sumSales(prevWeekStart, weekStart);
-  const prevMonthSales = sumSales(prevMonthStart, monthStart);
-  const weekCosts = sumExpenses(weekStart);
-  const prevWeekCosts = sumExpenses(prevWeekStart, weekStart);
-  const weekProfit = profitFor(weekStart);
-  const prevProfit = profitFor(prevWeekStart, weekStart);
-  const netProfit = weekSales - weekProfit.cogs - weekCosts;
-  const prevNetProfit = prevWeekSales - prevProfit.cogs - prevWeekCosts;
-
-  const lagosToday = lagosDate(now);
-  const todayKey = new Date(Date.UTC(lagosToday.getUTCFullYear(), lagosToday.getUTCMonth(), lagosToday.getUTCDate()));
-  const parseDay = (value?: string) => {
-    if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-    const [year, month, day] = value.split("-").map(Number);
-    const date = new Date(Date.UTC(year, month - 1, day));
-    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
-    return date;
-  };
-  let rangeStart = addDays(todayKey, -6);
-  let rangeEnd = todayKey;
-  if (selectedRange === "today") {
-    rangeStart = todayKey;
-    rangeEnd = todayKey;
-  } else if (selectedRange === "yesterday") {
-    rangeStart = addDays(todayKey, -1);
-    rangeEnd = rangeStart;
-  } else if (selectedRange === "30") {
-    rangeStart = addDays(todayKey, -29);
-    rangeEnd = todayKey;
-  } else if (selectedRange === "week") {
-    const weekday = todayKey.getUTCDay();
-    const mondayOffset = weekday === 0 ? 6 : weekday - 1;
-    rangeStart = addDays(todayKey, -mondayOffset);
-    rangeEnd = addDays(rangeStart, 6);
-  } else if (selectedRange === "month") {
-    rangeStart = new Date(Date.UTC(todayKey.getUTCFullYear(), todayKey.getUTCMonth(), 1));
-    rangeEnd = new Date(Date.UTC(todayKey.getUTCFullYear(), todayKey.getUTCMonth() + 1, 0));
-  } else if (selectedRange === "custom") {
-    const customStart = parseDay(from);
-    const customEnd = parseDay(to);
-    if (customStart && customEnd) {
-      rangeStart = customStart;
-      rangeEnd = customEnd;
-    }
-    if (rangeEnd < rangeStart) [rangeStart, rangeEnd] = [rangeEnd, rangeStart];
-    const span = Math.round((rangeEnd.getTime() - rangeStart.getTime()) / 86400000);
-    if (span > 61) rangeStart = addDays(rangeEnd, -61);
-  }
+  const expenseRows = (expenses ?? []) as Expense[];
+  const weekSales = sumSales(rows, weekRange.from, weekRange.to);
+  const monthSales = sumSales(rows, monthRange.from, monthRange.to);
+  const prevWeekSales = sumSales(rows, prevWeekRange.from, prevWeekRange.to);
+  const prevMonthSales = sumSales(rows, prevMonthRange.from, prevMonthRange.to);
+  const weekCosts = sumExpenses(expenseRows, weekRange.from, weekRange.to);
+  const prevWeekCosts = sumExpenses(expenseRows, prevWeekRange.from, prevWeekRange.to);
+  const weekProfit = summarizeSales(rows.filter((sale) => inRange(sale.created_at, weekRange.from, weekRange.to)));
+  const prevProfit = summarizeSales(rows.filter((sale) => inRange(sale.created_at, prevWeekRange.from, prevWeekRange.to)));
 
   const days = Array.from({ length: 7 }, (_, index) => {
-    const day = new Date(Date.UTC(
-      lagosToday.getUTCFullYear(),
-      lagosToday.getUTCMonth(),
-      lagosToday.getUTCDate() - 6 + index
-    ));
-    const key = day.toISOString().slice(0, 10);
-    const total = rows
-      .filter((sale) => dayKey(new Date(sale.created_at)) === key)
-      .reduce((sum, sale) => sum + Number(sale.total), 0);
+    const key = addDateKey(todayKey, index - 6);
+    const range = lagosDayRange(key);
+    const total = sumSales(rows, range.start, range.end);
     return {
-      label: day.toLocaleDateString("en-NG", { weekday: "short", timeZone: "UTC" }),
-      date: day.getUTCDate(),
+      label: new Date(`${key}T12:00:00Z`).toLocaleDateString("en-NG", { weekday: "short", timeZone: "UTC" }),
+      date: Number(key.slice(8, 10)),
       total,
     };
   });
+
   const chartDays = [];
-  for (let cursor = new Date(rangeStart); cursor <= rangeEnd; cursor = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), cursor.getUTCDate() + 1))) {
-    const key = cursor.toISOString().slice(0, 10);
-    const total = rows
-      .filter((sale) => dayKey(new Date(sale.created_at)) === key)
-      .reduce((sum, sale) => sum + Number(sale.total), 0);
+  for (let key = rangeStart; key <= rangeEnd; key = addDateKey(key, 1)) {
+    const range = lagosDayRange(key);
     chartDays.push({
       key,
-      label: cursor.toLocaleDateString("en-NG", { weekday: "short", timeZone: "UTC" }),
-      date: cursor.getUTCDate(),
-      total,
+      label: new Date(`${key}T12:00:00Z`).toLocaleDateString("en-NG", { weekday: "short", timeZone: "UTC" }),
+      date: Number(key.slice(8, 10)),
+      total: sumSales(rows, range.start, range.end),
     });
   }
 
+  const chartRange = lagosDayRange(rangeStart);
+  const chartEnd = lagosDayRange(addDateKey(rangeEnd, 1)).start;
   const productTotals = new Map<string, { name: string; quantity: number; amount: number; image: string }>();
   for (const sale of rows) {
-    if (new Date(sale.created_at) < chartStart) continue;
+    if (!inRange(sale.created_at, chartRange.start, chartEnd)) continue;
     for (const item of sale.sale_items ?? []) {
       const product = products.find((row) => row.name === item.name);
       const current = productTotals.get(item.name) || { name: item.name, quantity: 0, amount: 0, image: product?.image_url || "" };
@@ -238,16 +155,16 @@ export async function getAnalytics(from?: string, to?: string, range?: string) {
     weekSales,
     monthSales,
     weekCosts,
-    netProfit,
-    missingCostUnits: weekProfit.missing,
+    netProfit: netProfit(weekSales, weekProfit.cogs, weekCosts),
+    missingCostUnits: weekProfit.missingUnits,
     prevWeekSales,
     prevMonthSales,
     prevWeekCosts,
-    prevNetProfit,
+    prevNetProfit: netProfit(prevWeekSales, prevProfit.cogs, prevWeekCosts),
     days,
     chartDays,
-    chartFrom: rangeStart.toISOString().slice(0, 10),
-    chartTo: rangeEnd.toISOString().slice(0, 10),
+    chartFrom: rangeStart,
+    chartTo: rangeEnd,
     chartRange: selectedRange,
     topProducts,
     lowStock,

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentBusiness } from "@/features/business/queries";
 import { getDayClose } from "@/features/sales/queries";
+import { resolveDayKey } from "@/lib/dates";
 import PrintReportButton from "@/features/sales/components/PrintReportButton";
 
 function money(value: number) {
@@ -13,13 +14,11 @@ export default async function ClosePage({ searchParams }: { searchParams: Promis
   if (business.role !== "owner") redirect("/dashboard");
 
   const params = await searchParams;
-  const selected = params.date ? new Date(`${params.date}T12:00:00`) : new Date();
-  const day = Number.isNaN(selected.getTime()) ? new Date() : selected;
-  const close = await getDayClose(day);
+  const dateValue = resolveDayKey(params.date);
+  const close = await getDayClose(dateValue);
   if (!close) redirect("/onboarding");
 
-  const dateValue = day.toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" });
-  const dateLabel = day.toLocaleDateString("en-NG", { timeZone: "Africa/Lagos", weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  const dateLabel = new Date(`${dateValue}T12:00:00Z`).toLocaleDateString("en-NG", { timeZone: "UTC", weekday: "short", day: "numeric", month: "short", year: "numeric" });
   const empty = close.salesCount === 0 && close.expenses === 0 && close.debtPayments === 0;
   const lines = [
     close.shop,

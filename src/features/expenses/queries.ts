@@ -1,5 +1,6 @@
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getCurrentBusiness } from "@/features/business/queries";
+import { lagosDayRange, resolveDayKey } from "@/lib/dates";
 
 export async function getExpenses() {
   const business = await getCurrentBusiness();
@@ -14,13 +15,10 @@ export async function getExpenses() {
   return data ?? [];
 }
 
-export async function getTodayExpenses(day = new Date()) {
+export async function getTodayExpenses(day: Date | string = new Date()) {
   const business = await getCurrentBusiness();
   if (!business) return 0;
-  const start = new Date(day);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
+  const { start, end } = lagosDayRange(resolveDayKey(day));
   const supabase = await createServerSupabase();
   const { data } = await supabase
     .from("expenses")
@@ -31,13 +29,10 @@ export async function getTodayExpenses(day = new Date()) {
   return (data ?? []).reduce((sum, row) => sum + Number(row.amount), 0);
 }
 
-export async function getTodayCosts(day = new Date()) {
+export async function getTodayCosts(day: Date | string = new Date()) {
   const business = await getCurrentBusiness();
   if (!business) return [];
-  const start = new Date(day);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
+  const { start, end } = lagosDayRange(resolveDayKey(day));
   const supabase = await createServerSupabase();
   const { data } = await supabase
     .from("expenses")
