@@ -87,7 +87,7 @@ export async function getAnalytics(from?: string, to?: string, range?: string) {
   const [{ data: sales }, { data: expenses }, products] = await Promise.all([
     supabase
       .from("sales")
-      .select("id, total, created_at, sale_items(name, quantity, price, cost_price)")
+      .select("id, total, created_at, status, sale_items(name, quantity, price, cost_price)")
       .eq("business_id", business.id)
       .gte("created_at", fetchStart.toISOString()),
     supabase
@@ -98,7 +98,7 @@ export async function getAnalytics(from?: string, to?: string, range?: string) {
     getProducts(),
   ]);
 
-  const rows = (sales ?? []) as Sale[];
+  const rows = ((sales ?? []) as (Sale & { status?: string })[]).filter((sale) => sale.status !== "voided");
   const expenseRows = (expenses ?? []) as Expense[];
   const weekSales = sumSales(rows, weekRange.from, weekRange.to);
   const monthSales = sumSales(rows, monthRange.from, monthRange.to);

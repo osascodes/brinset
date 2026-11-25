@@ -11,7 +11,7 @@ export async function getRecentSales() {
     const supabase = await createServerSupabase();
     const { data, error } = await supabase
       .from("sales")
-      .select("id, total, discount, created_at, customer_id, sale_items(name, quantity, price)")
+      .select("id, total, discount, created_at, customer_id, status, voided_at, void_reason, refund_due, sale_items(name, quantity, price)")
       .eq("business_id", business.id)
       .order("created_at", { ascending: false })
       .limit(30);
@@ -20,7 +20,7 @@ export async function getRecentSales() {
     const sales = data ?? [];
     const ids = sales.map((sale) => sale.id);
     const { data: debts } = ids.length
-      ? await supabase.from("debts").select("sale_id, amount, paid").eq("business_id", business.id).in("sale_id", ids)
+      ? await supabase.from("debts").select("sale_id, amount, paid, status").eq("business_id", business.id).in("sale_id", ids)
       : { data: [] };
     const unpaid = new Set(
       (debts ?? [])
@@ -45,12 +45,12 @@ export async function getTodaySalesTotal(day: Date | string = new Date()) {
   const supabase = await createServerSupabase();
   const { data } = await supabase
     .from("sales")
-    .select("total")
+    .select("total, status")
     .eq("business_id", business.id)
     .gte("created_at", start.toISOString())
     .lt("created_at", end.toISOString());
 
-  return (data ?? []).reduce((sum, sale) => sum + Number(sale.total), 0);
+  return (data ?? []).filter((sale) => sale.status !== "voided").reduce((sum, sale) => sum + Number(sale.total), 0);
 }
 
 export async function getTodaySales(day: Date | string = new Date()) {
@@ -60,10 +60,11 @@ export async function getTodaySales(day: Date | string = new Date()) {
   const supabase = await createServerSupabase();
   const { data } = await supabase
     .from("sales")
-    .select("id, total, created_at, sale_items(name, quantity)")
+    .select("id, total, created_at, status, sale_items(name, quantity)")
     .eq("business_id", business.id)
     .gte("created_at", start.toISOString())
     .lt("created_at", end.toISOString())
+    .neq("status", "voided")
     .order("created_at", { ascending: false })
     .limit(8);
   return (data ?? []).map((sale) => ({
@@ -81,11 +82,11 @@ export async function getTodayProfit(day: Date | string = new Date()) {
   const supabase = await createServerSupabase();
   const { data } = await supabase
     .from("sales")
-    .select("total, sale_items(quantity, cost_price)")
+    .select("total, status, sale_items(quantity, cost_price)")
     .eq("business_id", business.id)
     .gte("created_at", start.toISOString())
     .lt("created_at", end.toISOString());
-  const summary = summarizeSales(data ?? []);
+  const summary = summarizeSales((data ?? []).filter((sale) => sale.status !== "voided"));
   return { revenue: summary.revenue, cogs: summary.cogs, missingUnits: summary.missingUnits };
 }
 
@@ -97,10 +98,11 @@ export async function getDayClose(day: Date | string = new Date()) {
   const [{ data: sales }, { data: expenses }, { data: payments }] = await Promise.all([
     supabase
       .from("sales")
-      .select("id, total, created_at, sale_items(name, quantity)")
+      .select("id, total, created_at, status, sale_items(name, quantity)")
       .eq("business_id", business.id)
       .gte("created_at", start.toISOString())
       .lt("created_at", end.toISOString())
+      .neq("status", "voided")
       .order("created_at", { ascending: false }),
     supabase
       .from("expenses")
@@ -118,12 +120,12 @@ export async function getDayClose(day: Date | string = new Date()) {
 
   const saleIds = (sales ?? []).map((sale) => sale.id);
   const { data: debts } = saleIds.length
-    ? await supabase.from("debts").select("sale_id, amount, paid").eq("business_id", business.id).in("sale_id", saleIds)
+    ? await supabase.from("debts").select("sale_id, amount, paid, status").eq("business_id", business.id).in("sale_id", saleIds)
     : { data: [] };
 
   const outstandingBySale = new Map<string, number>();
   for (const debt of debts ?? []) {
-    if (!debt.sale_id) continue;
+    if (!debt.sale_id || debt.status === "voided") continue;
     const left = Math.max(0, Number(debt.amount) - Number(debt.paid));
     outstandingBySale.set(debt.sale_id, (outstandingBySale.get(debt.sale_id) || 0) + left);
   }

@@ -75,6 +75,10 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
                 at: sale.created_at,
                 total: Number(sale.total),
                 unpaid: Boolean(sale.unpaid),
+                voided: sale.status === "voided",
+                voidReason: sale.void_reason || "",
+                voidedAt: sale.voided_at || "",
+                refundDue: Number(sale.refund_due || 0),
                 items: items.map((item: { name: string; quantity: number; price: number }) => ({
                   name: item.name,
                   quantity: Number(item.quantity),

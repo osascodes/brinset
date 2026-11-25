@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { deleteSaleAction } from "@/features/sales/actions";
+import { voidSaleAction } from "@/features/sales/actions";
 
 type SaleItem = { name: string; quantity: number; price: number };
 type Sale = {
@@ -13,6 +13,10 @@ type Sale = {
   total: number;
   items: SaleItem[];
   unpaid?: boolean;
+  voided?: boolean;
+  voidReason?: string;
+  voidedAt?: string;
+  refundDue?: number;
 };
 
 function ref(id: string) {
@@ -44,7 +48,9 @@ function formatWhen(value?: string, fallback = "") {
 
 export default function SaleList({ sales, todayOnly = false }: { sales: Sale[]; todayOnly?: boolean }) {
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<"all" | "paid" | "unpaid">("all");
+  const [filter, setFilter] = useState<"all" | "paid" | "unpaid" | "voided">("all");
+  const [voiding, setVoiding] = useState<Sale | null>(null);
+  const [reason, setReason] = useState("");
   const [items, setItems] = useState(sales);
   const [pendingId, setPendingId] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -55,6 +61,8 @@ export default function SaleList({ sales, todayOnly = false }: { sales: Sale[]; 
     start.setHours(0, 0, 0, 0);
     return items.filter((sale) => {
       if (todayOnly && sale.at && new Date(sale.at) < start) return false;
+      if (filter === "voided" && !sale.voided) return false;
+      if (filter !== "voided" && sale.voided) return false;
       if (filter === "paid" && sale.unpaid) return false;
       if (filter === "unpaid" && !sale.unpaid) return false;
       if (!value) return true;
@@ -71,6 +79,7 @@ export default function SaleList({ sales, todayOnly = false }: { sales: Sale[]; 
     ["all", "All"],
     ["paid", "Paid"],
     ["unpaid", "Unpaid"],
+    ["voided", "Voided"],
   ] as const;
 
   return (
@@ -103,7 +112,7 @@ export default function SaleList({ sales, todayOnly = false }: { sales: Sale[]; 
             <div key={sale.id} className="rounded-2xl border border-zinc-200 bg-white p-4">
               <div className="flex items-start justify-between gap-3">
                 <p className="text-lg font-semibold text-zinc-950">Sale #{ref(sale.id)}</p>
-                <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${sale.unpaid ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>{sale.unpaid ? "Unpaid" : "Paid"}</span>
+                <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${sale.voided ? "bg-zinc-100 text-zinc-600" : sale.unpaid ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>{sale.voided ? "Voided" : sale.unpaid ? "Unpaid" : "Paid"}</span>
               </div>
               <p className="mt-2 text-sm text-zinc-400">{formatWhen(sale.at, sale.when)}</p>
               <p className="mt-3 text-base text-zinc-950">{summary(sale.items)}</p>
@@ -118,34 +127,53 @@ export default function SaleList({ sales, todayOnly = false }: { sales: Sale[]; 
                   </Link>
                 </div>
               </div>
-              <button
-                type="button"
-                disabled={pendingId === sale.id}
-                onClick={async () => {
-                  setErrorMessage("");
-                  setPendingId(sale.id);
-                  const previous = items;
-                  setItems((current) => current.filter((item) => item.id !== sale.id));
-                  try {
-                    const formData = new FormData();
-                    formData.set("id", sale.id);
-                    const result = await deleteSaleAction(formData);
-                    if (result?.error) throw new Error(result.error);
-                  } catch (error: unknown) {
-                    setItems(previous);
-                    setErrorMessage(error instanceof Error ? error.message : "Could not remove the sale");
-                  } finally {
-                    setPendingId("");
-                  }
-                }}
-                className="mt-2 text-xs text-zinc-400"
-              >
-                {pendingId === sale.id ? "Removing..." : "Remove"}
-              </button>
+              {sale.voided ? (
+                <p className="mt-2 text-xs text-zinc-500">Voided{sale.voidReason ? `: ${sale.voidReason}` : ""}{sale.refundDue ? ` · ₦${sale.refundDue.toLocaleString()} received, not refunded` : ""}</p>
+              ) : (
+                <button type="button" onClick={() => { setVoiding(sale); setReason(""); setErrorMessage(""); }} className="mt-2 text-xs font-medium text-rose-600">
+                  Void sale
+                </button>
+              )}
             </div>
           );
         })
       )}
+      {voiding ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+          <form
+            className="w-full max-w-md rounded-2xl bg-white p-5"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              setErrorMessage("");
+              setPendingId(voiding.id);
+              try {
+                const formData = new FormData();
+                formData.set("id", voiding.id);
+                formData.set("reason", reason);
+                const result = await voidSaleAction(formData);
+                if (result?.error) throw new Error(result.error);
+                setItems((current) => current.map((item) => item.id === voiding.id ? { ...item, voided: true, voidReason: reason, unpaid: false } : item));
+                setVoiding(null);
+                setReason("");
+              } catch (error: unknown) {
+                setErrorMessage(error instanceof Error ? error.message : "Could not void the sale");
+              } finally {
+                setPendingId("");
+              }
+            }}
+          >
+            <h3 className="text-lg font-semibold text-zinc-950">Void this sale?</h3>
+            <p className="mt-2 text-sm text-zinc-500">The sale stays in history, but it will be excluded from sales, profit, analytics and close of day. Stock is returned once. Money already received is not marked as refunded.</p>
+            <label className="mt-4 block text-sm font-medium text-zinc-700">Reason</label>
+            <textarea value={reason} onChange={(event) => setReason(event.target.value)} required className="mt-1 h-24 w-full rounded-lg border border-zinc-200 p-3 text-sm" placeholder="Why is this sale being voided?" />
+            {errorMessage ? <p className="mt-2 text-sm text-red-500">{errorMessage}</p> : null}
+            <div className="mt-4 flex gap-2">
+              <button type="button" onClick={() => setVoiding(null)} className="h-10 flex-1 rounded-lg border border-zinc-200 text-sm font-medium">Cancel</button>
+              <button type="submit" disabled={pendingId === voiding.id || !reason.trim()} className="h-10 flex-1 rounded-lg bg-rose-600 text-sm font-semibold text-white disabled:opacity-60">{pendingId === voiding.id ? "Voiding..." : "Void sale"}</button>
+            </div>
+          </form>
+        </div>
+      ) : null}
     </div>
   );
 }

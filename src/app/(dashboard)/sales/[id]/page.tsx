@@ -17,7 +17,7 @@ export default async function ReceiptPage({
   const supabase = await createServerSupabase();
   const { data: sale } = await supabase
     .from("sales")
-    .select("id, total, discount, created_at, customers(name), sale_items(name, quantity, price)")
+    .select("id, total, discount, created_at, status, void_reason, voided_at, refund_due, customers(name), sale_items(name, quantity, price)")
     .eq("id", id)
     .eq("business_id", business.id)
     .maybeSingle();
@@ -48,6 +48,13 @@ export default async function ReceiptPage({
           Back to sales
         </Link>
         <article id="receipt-card" className="mt-4 rounded-2xl border border-zinc-200 bg-white px-6 py-7 text-zinc-950 print:border-0">
+          {sale.status === "voided" ? (
+            <div className="mb-4 rounded-lg bg-zinc-100 p-3 text-sm text-zinc-700">
+              <p className="font-semibold">VOIDED</p>
+              <p>{sale.void_reason || "No reason recorded"}</p>
+              {Number(sale.refund_due) > 0 ? <p>₦{Number(sale.refund_due).toLocaleString()} was received and has not been marked refunded.</p> : null}
+            </div>
+          ) : null}
           <div className="flex items-center gap-3">
             {business.logo_url ? (
               <img src={business.logo_url} alt="" crossOrigin="anonymous" className="h-12 w-12 rounded-xl object-cover" />

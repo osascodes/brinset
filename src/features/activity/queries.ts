@@ -7,7 +7,7 @@ export async function getActivity() {
 
   const supabase = await createServerSupabase();
   const [{ data: sales }, { data: expenses }, { data: orders }, { data: debts }, paymentsResult] = await Promise.all([
-    supabase.from("sales").select("id, total, created_at, sale_items(name, quantity)").eq("business_id", business.id).order("created_at", { ascending: false }).limit(20),
+    supabase.from("sales").select("id, total, created_at, status, sale_items(name, quantity)").eq("business_id", business.id).order("created_at", { ascending: false }).limit(20),
     supabase.from("expenses").select("id, title, amount, created_at").eq("business_id", business.id).order("created_at", { ascending: false }).limit(20),
     supabase.from("orders").select("id, order_number, customer_name, product_name, quantity, status, created_at").eq("business_id", business.id).order("created_at", { ascending: false }).limit(40),
     supabase.from("debts").select("id, amount, created_at, customers(name)").eq("business_id", business.id).order("created_at", { ascending: false }).limit(20),
@@ -31,7 +31,7 @@ export async function getActivity() {
   const items = [
     ...(sales ?? []).map((sale) => ({
       id: `sale-${sale.id}`,
-      title: "Sale recorded",
+      title: sale.status === "voided" ? "Sale voided" : "Sale recorded",
       detail: `${(sale.sale_items ?? []).map((item: { quantity: number; name: string }) => `${item.quantity}x ${item.name}`).join(", ") || "Sale"} — ₦${Number(sale.total).toLocaleString()}`,
       createdAt: sale.created_at,
     })),
