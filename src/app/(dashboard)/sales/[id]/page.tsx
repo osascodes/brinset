@@ -17,7 +17,7 @@ export default async function ReceiptPage({
   const supabase = await createServerSupabase();
   const { data: sale } = await supabase
     .from("sales")
-    .select("id, total, discount, created_at, status, void_reason, voided_at, refund_due, customers(name), sale_items(name, quantity, price)")
+    .select("id, total, discount, created_at, status, void_reason, voided_at, refund_due, customers(name, phone), sale_items(name, quantity, price)")
     .eq("id", id)
     .eq("business_id", business.id)
     .maybeSingle();
@@ -73,7 +73,7 @@ export default async function ReceiptPage({
             <span>{receiptNo}</span>
             <span>{when}</span>
           </div>
-          {customerName ? <p className="mt-3 text-sm text-zinc-600">Customer: {customerName}</p> : null}
+          {customerName ? <p className="mt-3 text-sm text-zinc-600">Customer: {customerName}{customer?.phone ? ` · ${customer.phone}` : ""}</p> : null}
           <div className="mt-6 space-y-4 border-t border-dashed border-zinc-200 pt-4">
             {items.map((item, index) => (
               <div key={`${item.name}-${index}`} className="flex items-start justify-between gap-3 text-sm">

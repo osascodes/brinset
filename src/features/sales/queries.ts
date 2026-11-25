@@ -11,7 +11,7 @@ export async function getRecentSales() {
     const supabase = await createServerSupabase();
     const { data, error } = await supabase
       .from("sales")
-      .select("id, total, discount, created_at, customer_id, status, voided_at, void_reason, refund_due, sale_items(name, quantity, price)")
+      .select("id, total, discount, created_at, customer_id, status, voided_at, void_reason, refund_due, source, customers(name, phone), sale_items(name, quantity, price)")
       .eq("business_id", business.id)
       .order("created_at", { ascending: false })
       .limit(30);
@@ -22,16 +22,26 @@ export async function getRecentSales() {
     const { data: debts } = ids.length
       ? await supabase.from("debts").select("sale_id, amount, paid, status").eq("business_id", business.id).in("sale_id", ids)
       : { data: [] };
-    const unpaid = new Set(
-      (debts ?? [])
-        .filter((debt) => debt.sale_id && Number(debt.amount) - Number(debt.paid) > 0)
-        .map((debt) => debt.sale_id),
-    );
+    const balances = new Map<string, { amount: number; paid: number }>();
+    for (const debt of debts ?? []) {
+      if (!debt.sale_id || debt.status === "voided") continue;
+      const current = balances.get(debt.sale_id) || { amount: 0, paid: 0 };
+      current.amount += Number(debt.amount);
+      current.paid += Number(debt.paid);
+      balances.set(debt.sale_id, current);
+    }
 
-    return sales.map((sale) => ({
-      ...sale,
-      unpaid: unpaid.has(sale.id),
-    }));
+    return sales.map((sale) => {
+      const balance = balances.get(sale.id);
+      const customer = Array.isArray(sale.customers) ? sale.customers[0] : sale.customers;
+      return {
+        ...sale,
+        unpaid: Boolean(balance && balance.paid <= 0 && balance.amount > 0),
+        partial: Boolean(balance && balance.paid > 0 && balance.paid < balance.amount),
+        customerName: customer?.name || "",
+        customerPhone: customer?.phone || "",
+      };
+    });
   } catch {
     return [];
   }

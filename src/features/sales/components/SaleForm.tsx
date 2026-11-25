@@ -20,7 +20,8 @@ export default function SaleForm({ products, customers = [], offlineMode = false
   const [productId, setProductId] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [lines, setLines] = useState<Line[]>([]);
-  const [onCredit, setOnCredit] = useState(false);
+  const [paymentMode, setPaymentMode] = useState<"paid" | "partial" | "unpaid">("paid");
+  const [amountReceived, setAmountReceived] = useState(0);
   const [discountValue, setDiscountValue] = useState(0);
   const [discountMode, setDiscountMode] = useState<"fixed" | "percent">("fixed");
 
@@ -75,13 +76,15 @@ export default function SaleForm({ products, customers = [], offlineMode = false
     const formData = new FormData(event.currentTarget);
     const customerId = String(formData.get("customer_id") || "");
     formData.set("discount", String(discountAmount));
-    formData.set("on_credit", onCredit ? "on" : "");
+    formData.set("payment_mode", paymentMode);
+    formData.set("amount_received", String(amountReceived));
     try {
       const payload = {
         id: crypto.randomUUID(),
         items: lines.map((line) => ({ product_id: line.productId, quantity: line.quantity })),
         customer_id: customerId,
-        on_credit: onCredit,
+        payment_mode: paymentMode,
+        amount_received: amountReceived,
         discount: discountAmount,
         label: lines
           .map((line) => {
@@ -91,12 +94,14 @@ export default function SaleForm({ products, customers = [], offlineMode = false
           .join(", "),
         total,
       };
-      if (onCredit && !customerId) throw new Error("Pick a customer for a credit sale");
+      if ((paymentMode === "unpaid" || paymentMode === "partial") && !customerId) throw new Error("Pick a customer for a credit sale");
+      if (paymentMode === "partial" && (amountReceived <= 0 || amountReceived >= total)) throw new Error("Amount received must be more than 0 and less than the total");
       if (offlineMode || !navigator.onLine) {
         writeQueue([...readQueue(), payload]);
         setLines([]);
         setDiscountValue(0);
-        setOnCredit(false);
+        setPaymentMode("paid");
+        setAmountReceived(0);
         setErrorMessage("Saved on this phone. It will send when the network returns.");
         return;
       }
@@ -104,7 +109,8 @@ export default function SaleForm({ products, customers = [], offlineMode = false
       setSaved(true);
       setLines([]);
       setDiscountValue(0);
-      setOnCredit(false);
+      setPaymentMode("paid");
+        setAmountReceived(0);
       router.refresh();
       window.setTimeout(() => setSaved(false), 2500);
     } catch (error: unknown) {
@@ -212,10 +218,21 @@ export default function SaleForm({ products, customers = [], offlineMode = false
         </select>
       </div>
 
-      <label className="flex items-center gap-2 text-sm text-zinc-700">
-        <input type="checkbox" name="on_credit" checked={onCredit} onChange={(event) => setOnCredit(event.target.checked)} className="h-4 w-4 rounded border-zinc-300 accent-[#635BFF]" />
-        Customer will pay later
-      </label>
+      <div className="grid grid-cols-3 gap-2">
+        {(["paid", "partial", "unpaid"] as const).map((mode) => (
+          <button key={mode} type="button" onClick={() => setPaymentMode(mode)} className={`h-10 rounded-lg border text-sm font-medium ${paymentMode === mode ? "border-[#635BFF] bg-[#635BFF] text-white" : "border-zinc-200 text-zinc-700"}`}>
+            {mode === "paid" ? "Paid" : mode === "partial" ? "Partial" : "Unpaid"}
+          </button>
+        ))}
+      </div>
+      {paymentMode === "partial" ? (
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-zinc-950">Amount received</label>
+          <input type="number" min="1" value={amountReceived || ""} onChange={(event) => setAmountReceived(Number(event.target.value))} placeholder="Amount received now" className={field} />
+          <p className="text-xs text-zinc-500">Outstanding: ₦{Math.max(total - amountReceived, 0).toLocaleString()}</p>
+        </div>
+      ) : null}
+      {paymentMode === "unpaid" ? <p className="text-xs text-zinc-500">The full total will be added to this customer's debt.</p> : null}
 
       <button type="submit" disabled={pending || lines.length === 0} className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-[#635BFF] text-sm font-semibold text-white transition active:scale-[0.98] disabled:opacity-50">
         {pending ? "Recording..." : saved ? "Done" : offlineMode ? `Save offline · ₦${total.toLocaleString()}` : `Record Sale · ₦${total.toLocaleString()}`}

@@ -19,7 +19,8 @@ export default function SyncSales() {
         const formData = new FormData();
         formData.set("items", JSON.stringify(sale.items));
         if (sale.customer_id) formData.set("customer_id", sale.customer_id);
-        if (sale.on_credit) formData.set("on_credit", "on");
+        formData.set("payment_mode", sale.payment_mode || (sale.on_credit ? "unpaid" : "paid"));
+        if (sale.amount_received) formData.set("amount_received", String(sale.amount_received));
         if (sale.discount) formData.set("discount", String(sale.discount));
         try {
           await recordSaleAction(formData);

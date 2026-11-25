@@ -15,10 +15,12 @@ export async function recordSaleAction(formData: FormData) {
 
   if (!Array.isArray(items) || items.length === 0) throw new Error("Add at least one item");
 
-  const onCredit = formData.get("on_credit") === "on";
+  const paymentMode = String(formData.get("payment_mode") || (formData.get("on_credit") === "on" ? "unpaid" : "paid"));
   const customerId = String(formData.get("customer_id") || "");
   const discount = Number(formData.get("discount") || 0);
-  if (onCredit && !customerId) throw new Error("Pick a customer for a credit sale");
+  const received = Number(formData.get("amount_received") || 0);
+  if (!["paid", "partial", "unpaid"].includes(paymentMode)) throw new Error("Choose a payment option");
+  if ((paymentMode === "unpaid" || paymentMode === "partial") && !customerId) throw new Error("Pick a customer for a credit sale");
   if (discount < 0) throw new Error("Discount cannot be negative");
 
   const business = await getCurrentBusiness();
@@ -58,22 +60,36 @@ export async function recordSaleAction(formData: FormData) {
     if (linkError) throw new Error(linkError.message);
   }
 
-  if (onCredit) {
+  if (paymentMode === "unpaid" || paymentMode === "partial") {
     const { data: sale, error: saleError } = await supabase
       .from("sales")
       .select("total")
       .eq("id", saleId)
       .single();
     if (saleError) throw new Error(saleError.message);
+    if (paymentMode === "partial" && (received <= 0 || received >= Number(sale.total))) {
+      throw new Error("Amount received must be more than 0 and less than the total");
+    }
 
-    const { error: debtError } = await supabase.rpc("create_sale_debt", {
+    const { data: debtId, error: debtError } = await supabase.rpc("create_sale_debt", {
       p_business_id: business.id,
       p_customer_id: customerId,
       p_amount: sale.total,
-      p_note: "Shop sale on credit",
+      p_note: paymentMode === "partial" ? "Shop sale, partly paid" : "Shop sale on credit",
       p_sale_id: saleId,
     });
     if (debtError) throw new Error(debtError.message);
+
+    if (paymentMode === "partial") {
+      const { error: paidError } = await supabase.from("debts").update({ paid: received }).eq("id", debtId).eq("business_id", business.id);
+      if (paidError) throw new Error(paidError.message);
+      const { error: paymentError } = await supabase.from("debt_payments").insert({
+        business_id: business.id,
+        debt_id: debtId,
+        amount: received,
+      });
+      if (paymentError) throw new Error(paymentError.message);
+    }
   }
 
   revalidatePath("/sales");

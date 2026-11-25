@@ -38,8 +38,7 @@ export default async function StorefrontPage({ searchParams }: { searchParams: P
     .select("id, product_name, quantity, customer_name, customer_phone, status, created_at, order_number, products(price)")
     .eq("business_id", business.id)
     .in("status", ["done", "cancelled"])
-    .order("created_at", { ascending: false })
-    .limit(20);
+    .order("created_at", { ascending: false });
   const orders = [...(active ?? []), ...(finished ?? [])];
 
   const saved = (orders ?? []).map((order) => ({

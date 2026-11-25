@@ -13,6 +13,9 @@ type Sale = {
   total: number;
   items: SaleItem[];
   unpaid?: boolean;
+  partial?: boolean;
+  customerName?: string;
+  customerPhone?: string;
   voided?: boolean;
   voidReason?: string;
   voidedAt?: string;
@@ -48,7 +51,7 @@ function formatWhen(value?: string, fallback = "") {
 
 export default function SaleList({ sales, todayOnly = false }: { sales: Sale[]; todayOnly?: boolean }) {
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<"all" | "paid" | "unpaid" | "voided">("all");
+  const [filter, setFilter] = useState<"all" | "paid" | "partial" | "unpaid" | "voided">("all");
   const [voiding, setVoiding] = useState<Sale | null>(null);
   const [reason, setReason] = useState("");
   const [items, setItems] = useState(sales);
@@ -63,7 +66,8 @@ export default function SaleList({ sales, todayOnly = false }: { sales: Sale[]; 
       if (todayOnly && sale.at && new Date(sale.at) < start) return false;
       if (filter === "voided" && !sale.voided) return false;
       if (filter !== "voided" && sale.voided) return false;
-      if (filter === "paid" && sale.unpaid) return false;
+      if (filter === "paid" && (sale.unpaid || sale.partial)) return false;
+      if (filter === "partial" && !sale.partial) return false;
       if (filter === "unpaid" && !sale.unpaid) return false;
       if (!value) return true;
       return `${ref(sale.id)} ${summary(sale.items)}`.toLowerCase().includes(value);
@@ -78,6 +82,7 @@ export default function SaleList({ sales, todayOnly = false }: { sales: Sale[]; 
   const chips = [
     ["all", "All"],
     ["paid", "Paid"],
+    ["partial", "Partial"],
     ["unpaid", "Unpaid"],
     ["voided", "Voided"],
   ] as const;
@@ -112,10 +117,11 @@ export default function SaleList({ sales, todayOnly = false }: { sales: Sale[]; 
             <div key={sale.id} className="rounded-2xl border border-zinc-200 bg-white p-4">
               <div className="flex items-start justify-between gap-3">
                 <p className="text-lg font-semibold text-zinc-950">Sale #{ref(sale.id)}</p>
-                <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${sale.voided ? "bg-zinc-100 text-zinc-600" : sale.unpaid ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>{sale.voided ? "Voided" : sale.unpaid ? "Unpaid" : "Paid"}</span>
+                <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${sale.voided ? "bg-zinc-100 text-zinc-600" : sale.unpaid ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>{sale.voided ? "Voided" : sale.partial ? "Partial" : sale.unpaid ? "Unpaid" : "Paid"}</span>
               </div>
               <p className="mt-2 text-sm text-zinc-400">{formatWhen(sale.at, sale.when)}</p>
               <p className="mt-3 text-base text-zinc-950">{summary(sale.items)}</p>
+              {sale.customerName ? <p className="mt-1 text-sm text-zinc-500">{sale.customerName}{sale.customerPhone ? ` · ${sale.customerPhone}` : ""}</p> : null}
               <div className="mt-4 border-t border-zinc-200 pt-3">
                 <div className="flex items-end justify-between gap-3">
                   <div>

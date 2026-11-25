@@ -6,7 +6,9 @@ export type QueuedSale = {
   id: string;
   items: { product_id: string; quantity: number }[];
   customer_id: string;
-  on_credit: boolean;
+  on_credit?: boolean;
+  payment_mode?: "paid" | "partial" | "unpaid";
+  amount_received?: number;
   discount?: number;
   label: string;
   total: number;
