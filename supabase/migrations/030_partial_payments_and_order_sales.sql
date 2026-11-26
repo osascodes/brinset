@@ -4,8 +4,10 @@ alter table public.sales
 
 create index if not exists sales_order_number_idx on public.sales (business_id, order_number);
 
+-- Existing function returns void. Keep that signature so CREATE OR REPLACE
+-- can update the body without DROP FUNCTION. The app only checks the error.
 create or replace function public.complete_store_order(p_order_id uuid)
-returns uuid
+returns void
 language plpgsql
 security definer
 set search_path = public
@@ -110,7 +112,6 @@ begin
   end if;
 
   update public.sales set total = v_total where id = v_sale_id;
-  return v_sale_id;
 end;
 $$;
 
