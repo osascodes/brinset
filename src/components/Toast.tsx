@@ -4,31 +4,31 @@ import { useEffect, useState } from "react";
 
 type Toast = { id: number; message: string; tone: "ok" | "error" };
 
-let pushToast: ((message: string, tone?: "ok" | "error") => void) | null = null;
-
 export function toast(message: string, tone: "ok" | "error" = "ok") {
-  pushToast?.(message, tone);
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent("brinset-toast", { detail: { message, tone } }));
 }
 
 export default function Toaster() {
   const [items, setItems] = useState<Toast[]>([]);
 
   useEffect(() => {
-    pushToast = (message, tone = "ok") => {
-      const id = Date.now();
-      setItems((current) => [...current.slice(-2), { id, message, tone }]);
-      window.setTimeout(() => setItems((current) => current.filter((item) => item.id !== id)), 2500);
+    const onToast = (event: Event) => {
+      const detail = (event as CustomEvent<{ message: string; tone?: "ok" | "error" }>).detail;
+      if (!detail?.message) return;
+      const id = Date.now() + Math.random();
+      setItems((current) => [...current.slice(-2), { id, message: detail.message, tone: detail.tone || "ok" }]);
+      window.setTimeout(() => setItems((current) => current.filter((item) => item.id !== id)), 3200);
     };
-    return () => {
-      pushToast = null;
-    };
+    window.addEventListener("brinset-toast", onToast);
+    return () => window.removeEventListener("brinset-toast", onToast);
   }, []);
 
   if (items.length === 0) return null;
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-4 z-50 flex flex-col items-center gap-2 px-4">
+    <div className="pointer-events-none fixed inset-x-0 top-4 z-[80] flex flex-col items-center gap-2 px-4">
       {items.map((item) => (
-        <div key={item.id} className={`pointer-events-auto rounded-lg px-4 py-2 text-sm font-medium shadow-lg ${item.tone === "error" ? "bg-rose-600 text-white" : "bg-zinc-950 text-white"}`}>
+        <div key={item.id} className={`pointer-events-auto rounded-lg px-4 py-3 text-sm font-semibold text-white shadow-lg ${item.tone === "error" ? "bg-rose-600" : "bg-[#635BFF]"}`}>
           {item.message}
         </div>
       ))}

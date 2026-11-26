@@ -18,6 +18,7 @@ export default function SaleForm({ products, customers = [], offlineMode = false
   const [errorMessage, setErrorMessage] = useState("");
   const [pending, setPending] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
   const [productId, setProductId] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [lines, setLines] = useState<Line[]>([]);
@@ -73,6 +74,7 @@ export default function SaleForm({ products, customers = [], offlineMode = false
     event.preventDefault();
     if (pending) return;
     setErrorMessage("");
+    setSuccessMessage("");
     setPending(true);
     setSaved(false);
     const formData = new FormData(event.currentTarget);
@@ -109,14 +111,14 @@ export default function SaleForm({ products, customers = [], offlineMode = false
       }
       const result = await recordSaleAction(formData);
       if (result?.error) throw new Error(result.error);
-      setSaved(true);
       setLines([]);
       setDiscountValue(0);
       setPaymentMode("paid");
       setAmountReceived(0);
+      setSaved(false);
+      setErrorMessage("");
       toast("Sale recorded successfully");
       router.refresh();
-      window.setTimeout(() => setSaved(false), 2500);
     } catch (error: unknown) {
       setErrorMessage(error instanceof Error ? error.message : "Could not record sale.");
     } finally {
@@ -129,6 +131,7 @@ export default function SaleForm({ products, customers = [], offlineMode = false
       {errorMessage ? (
         <div className={errorMessage.startsWith("Saved on this phone") ? "rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-600" : "rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600"}>{errorMessage}</div>
       ) : null}
+      {successMessage ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-700">{successMessage}</div> : null}
       <input type="hidden" name="items" value={JSON.stringify(lines.map((line) => ({ product_id: line.productId, quantity: line.quantity })))} />
       <input type="hidden" name="discount" value={discountAmount} />
 
