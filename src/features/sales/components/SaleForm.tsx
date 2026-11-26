@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { recordSaleAction } from "@/features/sales/actions";
+import { toast } from "@/components/Toast";
 import { SALE_CUSTOMERS, SALE_PRODUCTS, readQueue, writeQueue } from "@/features/sales/offline";
 
 type Product = { id: string; name: string; price: number; stock: number };
@@ -70,6 +71,7 @@ export default function SaleForm({ products, customers = [], offlineMode = false
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (pending) return;
     setErrorMessage("");
     setPending(true);
     setSaved(false);
@@ -105,12 +107,14 @@ export default function SaleForm({ products, customers = [], offlineMode = false
         setErrorMessage("Saved on this phone. It will send when the network returns.");
         return;
       }
-      await recordSaleAction(formData);
+      const result = await recordSaleAction(formData);
+      if (result?.error) throw new Error(result.error);
       setSaved(true);
       setLines([]);
       setDiscountValue(0);
       setPaymentMode("paid");
-        setAmountReceived(0);
+      setAmountReceived(0);
+      toast("Sale recorded successfully");
       router.refresh();
       window.setTimeout(() => setSaved(false), 2500);
     } catch (error: unknown) {

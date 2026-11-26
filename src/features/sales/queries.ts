@@ -11,7 +11,7 @@ export async function getRecentSales() {
     const supabase = await createServerSupabase();
     const { data, error } = await supabase
       .from("sales")
-      .select("id, total, discount, created_at, customer_id, status, voided_at, void_reason, refund_due, source, customers(name, phone), sale_items(name, quantity, price)")
+      .select("id, total, discount, created_at, customer_id, status, voided_at, void_reason, refund_due, customers(name, phone), sale_items(name, quantity, price)")
       .eq("business_id", business.id)
       .order("created_at", { ascending: false })
       .limit(30);
