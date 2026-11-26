@@ -117,6 +117,7 @@ export default function SaleForm({ products, customers = [], offlineMode = false
       setAmountReceived(0);
       setSaved(false);
       setErrorMessage("");
+      setSuccessMessage("Sale recorded successfully");
       toast("Sale recorded successfully");
       router.refresh();
     } catch (error: unknown) {
