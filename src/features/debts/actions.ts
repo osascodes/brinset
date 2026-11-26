@@ -84,6 +84,7 @@ export async function recordPaymentAction(formData: FormData) {
     business_id: business.id,
     debt_id: debt.id,
     amount: payment,
+    kind: "later",
   });
   revalidatePath("/debts");
   revalidatePath("/dashboard");

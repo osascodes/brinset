@@ -36,7 +36,7 @@ export default function StockList({ products, highlightLow = false }: { products
   }, [highlightLow, filtered]);
 
   return (
-    <div className="space-y-3">
+    <div className="min-w-0 space-y-3">
       <input
         value={query}
         onChange={(event) => setQuery(event.target.value)}
@@ -44,7 +44,7 @@ export default function StockList({ products, highlightLow = false }: { products
         className="h-11 w-full rounded-xl border border-zinc-300 bg-white px-3 text-sm text-zinc-950 outline-none"
       />
       {categories.length > 1 ? (
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        <div className="flex w-full min-w-0 gap-2 overflow-x-auto pb-1">
           {categories.map((item) => (
             <button key={item} type="button" onClick={() => setCategory(item)} className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${category === item ? "bg-[#635BFF] text-white" : "bg-zinc-100 text-zinc-600"}`}>{item}</button>
           ))}

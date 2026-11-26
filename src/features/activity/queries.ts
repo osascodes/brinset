@@ -11,7 +11,7 @@ export async function getActivity() {
     supabase.from("expenses").select("id, title, amount, created_at").eq("business_id", business.id).order("created_at", { ascending: false }).limit(20),
     supabase.from("orders").select("id, order_number, customer_name, product_name, quantity, status, created_at").eq("business_id", business.id).order("created_at", { ascending: false }).limit(40),
     supabase.from("debts").select("id, amount, created_at, customers(name)").eq("business_id", business.id).order("created_at", { ascending: false }).limit(20),
-    supabase.from("debt_payments").select("id, amount, created_at, debts(customers(name))").eq("business_id", business.id).order("created_at", { ascending: false }).limit(20),
+    supabase.from("debt_payments").select("id, amount, created_at, kind, debts(customers(name), sales(id))").eq("business_id", business.id).order("created_at", { ascending: false }).limit(20),
   ]);
   const payments = paymentsResult.error ? [] : paymentsResult.data ?? [];
 
@@ -63,7 +63,7 @@ export async function getActivity() {
       const name = Array.isArray(customers) ? customers[0]?.name : customers?.name;
       return {
         id: `payment-${payment.id}`,
-        title: "Debt payment received",
+        title: payment.kind === "initial" ? "Partial sale payment received" : "Debt payment received",
         detail: `${name || "Customer"} · ₦${Number(payment.amount).toLocaleString()}`,
         createdAt: payment.created_at,
       };

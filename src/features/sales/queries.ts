@@ -122,7 +122,7 @@ export async function getDayClose(day: Date | string = new Date()) {
       .lt("created_at", end.toISOString()),
     supabase
       .from("debt_payments")
-      .select("amount")
+      .select("amount, kind, debt_id, debts(sale_id)")
       .eq("business_id", business.id)
       .gte("created_at", start.toISOString())
       .lt("created_at", end.toISOString()),
@@ -146,8 +146,16 @@ export async function getDayClose(day: Date | string = new Date()) {
     salesTotal += Number(sale.total);
     outstanding += outstandingBySale.get(sale.id) || 0;
   }
-  const collectedOnSales = Math.max(0, salesTotal - outstanding);
-  const debtPayments = (payments ?? []).reduce((sum, row) => sum + Number(row.amount), 0);
+  const initialPayments = (payments ?? []).filter((row) => row.kind === "initial").reduce((sum, row) => sum + Number(row.amount), 0);
+  const laterPayments = (payments ?? []).filter((row) => row.kind !== "initial").reduce((sum, row) => sum + Number(row.amount), 0);
+  const cashSales = (sales ?? [])
+    .filter((sale) => !outstandingBySale.has(sale.id) && !(payments ?? []).some((row) => {
+      const debt = Array.isArray(row.debts) ? row.debts[0] : row.debts;
+      return debt?.sale_id === sale.id;
+    }))
+    .reduce((sum, sale) => sum + Number(sale.total), 0);
+  const collectedOnSales = cashSales + initialPayments;
+  const debtPayments = laterPayments;
   const expenseTotal = (expenses ?? []).reduce((sum, row) => sum + Number(row.amount), 0);
 
   return {

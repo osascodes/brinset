@@ -22,7 +22,7 @@ export async function getDebts() {
     .select("id, amount, paid, note, created_at, status, due_date, sales(status), customers(name, phone)")
     .eq("business_id", business.id)
     .order("created_at", { ascending: false });
-  return (data ?? []).filter((debt) => debt.status !== "voided").map((debt) => {
+  return (data ?? []).map((debt) => {
     const sale = Array.isArray(debt.sales) ? debt.sales[0] : debt.sales;
     return { ...debt, status: debt.status === "voided" || sale?.status === "voided" ? "voided" : debt.status };
   });

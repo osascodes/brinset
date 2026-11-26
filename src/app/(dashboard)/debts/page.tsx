@@ -23,7 +23,7 @@ export default async function DebtsPage() {
     }
     if (offline) {
       return (
-        <main className="px-4 py-8 md:px-8">
+        <main className="min-w-0 overflow-x-hidden px-4 py-8 md:px-8">
           <div className="mx-auto max-w-3xl">
             <h1 className="text-2xl font-semibold text-zinc-950">Debts</h1>
             <p className="mt-2 text-sm text-zinc-500">Offline. Payments stay on this phone until the network returns.</p>
@@ -64,9 +64,9 @@ export default async function DebtsPage() {
         shop: business.name,
       };
     })} />
-    <main className="px-4 py-8 md:px-8">
-      <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[320px_1fr]">
-        <div className="space-y-4">
+    <main className="min-w-0 overflow-x-hidden px-4 py-8 md:px-8">
+      <div className="mx-auto grid w-full min-w-0 max-w-5xl gap-6 lg:grid-cols-[320px_1fr]">
+        <div className="min-w-0 space-y-4">
           <h1 className="text-2xl font-semibold text-zinc-950">Debts</h1>
           <p className="text-sm text-zinc-400">Pick a customer, or add one here, then record what they owe.</p>
           <DebtForm customers={customers} />

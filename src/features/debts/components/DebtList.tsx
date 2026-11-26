@@ -61,14 +61,14 @@ export default function DebtList({ debts }: { debts: Debt[] }) {
   ];
 
   return (
-    <div className="space-y-3">
+    <div className="min-w-0 space-y-3">
       <input
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder="Search debts"
         className="h-11 w-full rounded-xl border border-zinc-300 bg-white px-3 text-sm text-zinc-950 outline-none"
       />
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="flex w-full min-w-0 gap-2 overflow-x-auto pb-1">
         {filters.map(([key, label]) => (
           <button key={key} type="button" onClick={() => setFilter(key)} className={`h-9 shrink-0 rounded-full px-3 text-sm font-medium ${filter === key ? "bg-[#635BFF] text-white" : "bg-zinc-100 text-zinc-700"}`}>
             {label}

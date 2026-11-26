@@ -88,6 +88,7 @@ export async function recordSaleAction(formData: FormData) {
           business_id: business.id,
           debt_id: debtId,
           amount: received,
+          kind: "initial",
         });
         if (paymentError) return { error: paymentError.message };
       }
