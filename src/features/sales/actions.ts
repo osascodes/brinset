@@ -20,6 +20,8 @@ export async function recordSaleAction(formData: FormData) {
     const customerId = String(formData.get("customer_id") || "");
     const discount = Number(formData.get("discount") || 0);
     const received = Number(formData.get("amount_received") || 0);
+    const dueMode = String(formData.get("due_mode") || "none");
+    const customDue = String(formData.get("due_date") || "");
     if (!["paid", "partial", "unpaid"].includes(paymentMode)) return { error: "Choose a payment option" };
     if ((paymentMode === "unpaid" || paymentMode === "partial") && !customerId) return { error: "Pick a customer for a credit sale" };
     if (discount < 0) return { error: "Discount cannot be negative" };
@@ -69,6 +71,15 @@ export async function recordSaleAction(formData: FormData) {
         p_sale_id: saleId,
       });
       if (debtError || !debtId) return { error: debtError?.message || "Could not add the debt" };
+
+      const lagosToday = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Lagos", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+      const tomorrow = new Date(`${lagosToday}T12:00:00Z`);
+      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+      const dueDate = dueMode === "today" ? lagosToday : dueMode === "tomorrow" ? tomorrow.toISOString().slice(0, 10) : dueMode === "custom" && /^\d{4}-\d{2}-\d{2}$/.test(customDue) ? customDue : null;
+      if (dueDate) {
+        const { error: dueError } = await supabase.from("debts").update({ due_date: dueDate }).eq("id", debtId).eq("business_id", business.id);
+        if (dueError) return { error: dueError.message };
+      }
 
       if (paymentMode === "partial") {
         const { error: paidError } = await supabase.from("debts").update({ paid: received }).eq("id", debtId).eq("business_id", business.id);

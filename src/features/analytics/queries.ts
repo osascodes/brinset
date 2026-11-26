@@ -25,6 +25,8 @@ const empty = {
   chartRange: "7",
   topProducts: [] as { name: string; quantity: number; amount: number; image: string }[],
   lowStock: [] as { name: string; stock: number }[],
+  collectedThisWeek: 0,
+  outstandingDebts: 0,
 };
 
 function inRange(createdAt: string, from: Date, to: Date) {
@@ -145,6 +147,21 @@ export async function getAnalytics(from?: string, to?: string, range?: string) {
     }
   }
 
+  const [{ data: payments }, { data: debts }] = await Promise.all([
+    supabase.from("debt_payments").select("amount, created_at").eq("business_id", business.id).gte("created_at", weekRange.from.toISOString()).lt("created_at", weekRange.to.toISOString()),
+    supabase.from("debts").select("amount, paid, status").eq("business_id", business.id),
+  ]);
+  const { data: saleDebts } = await supabase.from("debts").select("sale_id, status").eq("business_id", business.id).not("sale_id", "is", null);
+  const salesWithDebt = new Set((saleDebts ?? []).filter((debt) => debt.sale_id && debt.status !== "voided").map((debt) => debt.sale_id));
+  const weekDebtPayments = (payments ?? []).reduce((sum, row) => sum + Number(row.amount), 0);
+  const weekCashSales = rows
+    .filter((sale) => inRange(sale.created_at, weekRange.from, weekRange.to) && !salesWithDebt.has(sale.id))
+    .reduce((sum, sale) => sum + Number(sale.total), 0);
+  const collectedThisWeek = weekDebtPayments + weekCashSales;
+  const outstandingDebts = (debts ?? [])
+    .filter((debt) => debt.status !== "voided")
+    .reduce((sum, debt) => sum + Math.max(0, Number(debt.amount) - Number(debt.paid)), 0);
+
   const topProducts = [...productTotals.values()].sort((a, b) => b.amount - a.amount).slice(0, 5);
   const lowStock = products
     .filter((product) => product.stock <= product.low_stock_at)
@@ -168,5 +185,7 @@ export async function getAnalytics(from?: string, to?: string, range?: string) {
     chartRange: selectedRange,
     topProducts,
     lowStock,
+    collectedThisWeek,
+    outstandingDebts,
   };
 }

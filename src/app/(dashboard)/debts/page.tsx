@@ -84,6 +84,8 @@ export default async function DebtsPage() {
               paid: Number(debt.paid),
               phone: customer?.phone || null,
               shop: business.name,
+              status: debt.status || "open",
+              dueDate: debt.due_date || "",
             };
           })}
         />

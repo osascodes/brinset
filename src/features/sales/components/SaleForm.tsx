@@ -24,6 +24,8 @@ export default function SaleForm({ products, customers = [], offlineMode = false
   const [lines, setLines] = useState<Line[]>([]);
   const [paymentMode, setPaymentMode] = useState<"paid" | "partial" | "unpaid">("paid");
   const [amountReceived, setAmountReceived] = useState(0);
+  const [dueMode, setDueMode] = useState<"none" | "today" | "tomorrow" | "custom">("none");
+  const [dueDate, setDueDate] = useState("");
   const [discountValue, setDiscountValue] = useState(0);
   const [discountMode, setDiscountMode] = useState<"fixed" | "percent">("fixed");
 
@@ -82,6 +84,8 @@ export default function SaleForm({ products, customers = [], offlineMode = false
     formData.set("discount", String(discountAmount));
     formData.set("payment_mode", paymentMode);
     formData.set("amount_received", String(amountReceived));
+    formData.set("due_mode", dueMode);
+    formData.set("due_date", dueDate);
     try {
       const payload = {
         id: crypto.randomUUID(),
@@ -115,6 +119,8 @@ export default function SaleForm({ products, customers = [], offlineMode = false
       setDiscountValue(0);
       setPaymentMode("paid");
       setAmountReceived(0);
+      setDueMode("none");
+      setDueDate("");
       setSaved(false);
       setErrorMessage("");
       setSuccessMessage("Sale recorded successfully");
@@ -241,6 +247,19 @@ export default function SaleForm({ products, customers = [], offlineMode = false
         </div>
       ) : null}
       {paymentMode === "unpaid" ? <p className="text-xs text-zinc-500">The full total will be added to this customer's debt.</p> : null}
+      {paymentMode !== "paid" ? (
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-zinc-950">Expected payment date</label>
+          <div className="grid grid-cols-2 gap-2">
+            {(["none", "today", "tomorrow", "custom"] as const).map((mode) => (
+              <button key={mode} type="button" onClick={() => setDueMode(mode)} className={`h-10 rounded-lg border text-sm font-medium ${dueMode === mode ? "border-[#635BFF] bg-[#635BFF] text-white" : "border-zinc-200 text-zinc-700"}`}>
+                {mode === "none" ? "No date" : mode === "today" ? "Due today" : mode === "tomorrow" ? "Due tomorrow" : "Pick a date"}
+              </button>
+            ))}
+          </div>
+          {dueMode === "custom" ? <input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} className={field} /> : null}
+        </div>
+      ) : null}
 
       <button type="submit" disabled={pending || lines.length === 0} className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-[#635BFF] text-sm font-semibold text-white transition active:scale-[0.98] disabled:opacity-50">
         {pending ? "Recording..." : saved ? "Done" : offlineMode ? `Save offline · ₦${total.toLocaleString()}` : `Record Sale · ₦${total.toLocaleString()}`}

@@ -19,10 +19,13 @@ export async function getDebts() {
   const supabase = await createServerSupabase();
   const { data } = await supabase
     .from("debts")
-    .select("id, amount, paid, note, created_at, status, customers(name, phone)")
+    .select("id, amount, paid, note, created_at, status, due_date, sales(status), customers(name, phone)")
     .eq("business_id", business.id)
     .order("created_at", { ascending: false });
-  return data ?? [];
+  return (data ?? []).filter((debt) => debt.status !== "voided").map((debt) => {
+    const sale = Array.isArray(debt.sales) ? debt.sales[0] : debt.sales;
+    return { ...debt, status: debt.status === "voided" || sale?.status === "voided" ? "voided" : debt.status };
+  });
 }
 
 export async function getDebtsDue() {
@@ -48,11 +51,11 @@ export async function getRecentDebts() {
   const supabase = await createServerSupabase();
   const { data } = await supabase
     .from("debts")
-    .select("id, amount, created_at, customers(name)")
+    .select("id, amount, created_at, status, customers(name)")
     .eq("business_id", business.id)
     .order("created_at", { ascending: false })
     .limit(10);
-  return (data ?? []).map((debt) => {
+  return (data ?? []).filter((debt) => debt.status !== "voided").map((debt) => {
     const customers = debt.customers as { name?: string } | { name?: string }[] | null;
     const name = Array.isArray(customers) ? customers[0]?.name : customers?.name;
     return {

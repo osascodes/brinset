@@ -98,13 +98,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         [salesLabel, money(salesToday)],
         [costsLabel, money(costsToday)],
         [leftLabel, money(leftToday), missingNote],
-        ["Debts due", money(debtsDue)],
+        ["Outstanding debts", money(debtsDue)],
         ["Low stock", lowStock === 1 ? "1 item" : `${lowStock} items`],
         ["Orders to do", String(ordersToDo.length)],
       ]
     : [
         [salesLabel, money(salesToday)],
-        ["Debts due", money(debtsDue)],
+        ["Outstanding debts", money(debtsDue)],
         ["Low stock", lowStock === 1 ? "1 item" : `${lowStock} items`],
         ["Orders to do", String(ordersToDo.length)],
       ];

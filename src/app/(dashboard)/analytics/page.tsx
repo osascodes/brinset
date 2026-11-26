@@ -144,6 +144,19 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
           })}
         </div>
 
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-zinc-100 bg-white p-4">
+            <p className="text-xs font-medium text-zinc-500">Money collected this week</p>
+            <p className="mt-2 text-xl font-bold text-zinc-900">₦{Number(analytics.collectedThisWeek || 0).toLocaleString()}</p>
+            <p className="mt-1 text-xs text-zinc-400">Payments received, not new sales</p>
+          </div>
+          <div className="rounded-2xl border border-zinc-100 bg-white p-4">
+            <p className="text-xs font-medium text-zinc-500">Outstanding debts</p>
+            <p className="mt-2 text-xl font-bold text-zinc-900">₦{Number(analytics.outstandingDebts || 0).toLocaleString()}</p>
+            <p className="mt-1 text-xs text-zinc-400">Remaining balances, as of today</p>
+          </div>
+        </div>
+
         <SalesOverview days={analytics.chartDays} from={analytics.chartFrom} to={analytics.chartTo} range={analytics.chartRange || "7"} />
 
         {/* Top-selling products — immediately visible after compact chart */}
