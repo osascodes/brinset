@@ -9,11 +9,17 @@ export function summarizeSales(sales: SaleForProfit[]) {
     revenue += Number(sale.total) || 0;
     for (const item of sale.sale_items ?? []) {
       const quantity = Number(item.quantity) || 0;
-      if (item.cost_price == null) {
+      const rawCost = item.cost_price as number | string | null | undefined;
+      if (rawCost == null || rawCost === "") {
         missingUnits += quantity;
         continue;
       }
-      cogs += Number(item.cost_price) * quantity;
+      const cost = Number(rawCost);
+      if (!Number.isFinite(cost)) {
+        missingUnits += quantity;
+        continue;
+      }
+      cogs += cost * quantity;
     }
   }
   return { revenue, cogs, missingUnits, count: sales.length };

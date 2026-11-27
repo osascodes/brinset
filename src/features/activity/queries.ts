@@ -10,7 +10,7 @@ export async function getActivity() {
     supabase.from("sales").select("id, total, created_at, status, sale_items(name, quantity)").eq("business_id", business.id).order("created_at", { ascending: false }).limit(20),
     supabase.from("expenses").select("id, title, amount, created_at").eq("business_id", business.id).order("created_at", { ascending: false }).limit(20),
     supabase.from("orders").select("id, order_number, customer_name, product_name, quantity, status, created_at").eq("business_id", business.id).order("created_at", { ascending: false }).limit(40),
-    supabase.from("debts").select("id, amount, created_at, customers(name)").eq("business_id", business.id).order("created_at", { ascending: false }).limit(20),
+    supabase.from("debts").select("id, amount, created_at, status, customers(name), debt_payments(amount, kind, created_at)").eq("business_id", business.id).order("created_at", { ascending: false }).limit(20),
     supabase.from("debt_payments").select("id, amount, created_at, kind, debts(customers(name), sales(id))").eq("business_id", business.id).order("created_at", { ascending: false }).limit(20),
   ]);
   const payments = paymentsResult.error ? [] : paymentsResult.data ?? [];
@@ -47,13 +47,17 @@ export async function getActivity() {
       detail: `${order.customer} · ${order.items.join(", ")}`,
       createdAt: order.createdAt,
     })),
-    ...(debts ?? []).map((debt) => {
+    ...(debts ?? []).filter((debt) => debt.status !== "voided").map((debt) => {
       const customers = debt.customers as { name?: string } | { name?: string }[] | null;
       const name = Array.isArray(customers) ? customers[0]?.name : customers?.name;
+      const payments = (debt.debt_payments ?? []) as { amount: number; kind?: string; created_at?: string }[];
+      const initial = payments
+        .filter((payment) => payment.kind === "initial" || (!payment.kind && payment.created_at && Math.abs(new Date(payment.created_at).getTime() - new Date(debt.created_at).getTime()) < 120000))
+        .reduce((sum, payment) => sum + Number(payment.amount), 0);
       return {
         id: `debt-${debt.id}`,
         title: "Debt recorded",
-        detail: `${name || "Customer"} · ₦${Number(debt.amount).toLocaleString()}`,
+        detail: `${name || "Customer"} · ₦${Math.max(0, Number(debt.amount) - initial).toLocaleString()}`,
         createdAt: debt.created_at,
       };
     }),

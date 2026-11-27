@@ -37,7 +37,7 @@ export default function SaleForm({ products, customers = [], offlineMode = false
       }, 0),
     [lines, products],
   );
-  const discountAmount = discountMode === "percent" ? Math.min(subtotal, (subtotal * discountValue) / 100) : Math.min(subtotal, discountValue);
+  const discountAmount = discountMode === "percent" ? Math.min(subtotal, (subtotal * Math.min(discountValue, 100)) / 100) : Math.min(subtotal, Math.max(discountValue, 0));
   const total = Math.max(subtotal - discountAmount, 0);
 
   useEffect(() => {
@@ -102,6 +102,9 @@ export default function SaleForm({ products, customers = [], offlineMode = false
           .join(", "),
         total,
       };
+      if (discountValue < 0) throw new Error("Discount cannot be negative");
+      if (discountMode === "percent" && discountValue > 100) throw new Error("Percentage discount cannot be more than 100");
+      if (discountAmount > subtotal) throw new Error("Discount cannot be more than the subtotal");
       if ((paymentMode === "unpaid" || paymentMode === "partial") && !customerId) throw new Error("Pick a customer for a credit sale");
       if (paymentMode === "partial" && (amountReceived <= 0 || amountReceived >= total)) throw new Error("Amount received must be more than 0 and less than the total");
       if (offlineMode || !navigator.onLine) {
@@ -214,7 +217,7 @@ export default function SaleForm({ products, customers = [], offlineMode = false
             <option value="percent">% Percent</option>
           </select>
         </div>
-        <p className="text-xs text-zinc-500">Choose a fixed amount or percentage discount.</p>
+        <p className="text-xs text-zinc-500">{discountAmount > 0 ? `Discount: ₦${discountAmount.toLocaleString()}` : "Choose a fixed amount or percentage discount."}</p>
       </div>
 
       <div className="flex items-center justify-between">

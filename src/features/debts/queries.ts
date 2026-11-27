@@ -51,17 +51,21 @@ export async function getRecentDebts() {
   const supabase = await createServerSupabase();
   const { data } = await supabase
     .from("debts")
-    .select("id, amount, created_at, status, customers(name)")
+    .select("id, amount, paid, created_at, status, customers(name), debt_payments(amount, kind, created_at)")
     .eq("business_id", business.id)
     .order("created_at", { ascending: false })
     .limit(10);
   return (data ?? []).filter((debt) => debt.status !== "voided").map((debt) => {
     const customers = debt.customers as { name?: string } | { name?: string }[] | null;
     const name = Array.isArray(customers) ? customers[0]?.name : customers?.name;
+    const payments = (debt.debt_payments ?? []) as { amount: number; kind?: string; created_at?: string }[];
+    const initial = payments
+      .filter((payment) => payment.kind === "initial" || (!payment.kind && payment.created_at && Math.abs(new Date(payment.created_at).getTime() - new Date(debt.created_at).getTime()) < 120000))
+      .reduce((sum, payment) => sum + Number(payment.amount), 0);
     return {
       id: debt.id,
       name: name || "Customer",
-      amount: Number(debt.amount),
+      amount: Math.max(0, Number(debt.amount) - initial),
       createdAt: debt.created_at as string,
     };
   });
@@ -73,7 +77,7 @@ export async function getRecentDebtPayments() {
   const supabase = await createServerSupabase();
   const { data, error } = await supabase
     .from("debt_payments")
-    .select("id, amount, created_at, debts(customers(name))")
+    .select("id, amount, created_at, kind, debts(customers(name))")
     .eq("business_id", business.id)
     .order("created_at", { ascending: false })
     .limit(10);
@@ -86,6 +90,7 @@ export async function getRecentDebtPayments() {
       id: payment.id,
       name: name || "Customer",
       amount: Number(payment.amount),
+      kind: payment.kind === "initial" ? "initial" : "later",
       createdAt: payment.created_at as string,
     };
   });

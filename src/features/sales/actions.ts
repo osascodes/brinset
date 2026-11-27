@@ -36,6 +36,17 @@ export async function recordSaleAction(formData: FormData) {
     });
     if (error || !saleId) return { error: error?.message || "Could not record the sale" };
 
+    const { data: soldItems } = await supabase.from("sale_items").select("id, product_id, cost_price").eq("sale_id", saleId);
+    const missing = (soldItems ?? []).filter((item) => item.cost_price == null && item.product_id);
+    if (missing.length > 0) {
+      const { data: products } = await supabase.from("products").select("id, cost_price").in("id", [...new Set(missing.map((item) => item.product_id))]);
+      for (const item of missing) {
+        const product = (products ?? []).find((row) => row.id === item.product_id);
+        if (!product || product.cost_price == null) continue;
+        await supabase.from("sale_items").update({ cost_price: product.cost_price }).eq("id", item.id).eq("sale_id", saleId);
+      }
+    }
+
     if (discount > 0) {
       const { error: discountError } = await supabase.rpc("apply_sale_discount", {
         p_sale_id: saleId,

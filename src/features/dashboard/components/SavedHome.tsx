@@ -10,7 +10,7 @@ type Low = { id: string; name: string; stock: number };
 type Owed = { id: string; name: string; left: number };
 type Today = { id: string; total: number; items: string; createdAt?: string };
 type Cost = { id: string; title: string; amount: number; createdAt?: string };
-type DebtEvent = { id: string; name: string; amount: number; createdAt: string };
+type DebtEvent = { id: string; name: string; amount: number; createdAt: string; kind?: string };
 type Snapshot = {
   category: string;
   name: string;
@@ -173,7 +173,7 @@ export default function SavedHome({ snapshot, offline = false, unreadAlerts = 0 
   const paymentItems = (saved.payments || []).map((payment) => ({
     id: payment.id,
     kind: "payment" as const,
-    title: "Debt payment received",
+    title: payment.kind === "initial" ? "Partial sale payment received" : "Debt payment received",
     timeAgo: getTimeAgo(payment.createdAt),
     amount: `₦${Number(payment.amount).toLocaleString()}`,
     tone: "text-emerald-600",
