@@ -4,7 +4,7 @@ import { getCurrentBusiness } from "@/features/business/queries";
 import { getAnalytics } from "@/features/analytics/queries";
 import SavedStats from "@/features/analytics/components/SavedStats";
 import SalesOverview from "@/features/analytics/components/SalesOverview";
-import { ArrowRight, BarChart2, Coins, Trophy, Wallet } from "lucide-react";
+import { ArrowRight, Banknote, BarChart2, Coins, Scale, Trophy, Wallet } from "lucide-react";
 
 // Helper: compute a capped period-over-period % change.
 // Revenue/profit: green when positive, red when negative.
@@ -51,42 +51,68 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
   // Appearance config per card (Natural case title, matching icons from mockup 1)
   const cards = [
     {
-      label: "Sales This Week",
+      label: "Sales this week",
       value: analytics.weekSales,
       tone: "from-[#635BFF]/15 to-[#635BFF]/5",
       accent: "text-[#635BFF]",
       Icon: BarChart2,
       pct: weekSalesPct,
+      note: "",
       pctColor: (v: number) => (v >= 0 ? "text-emerald-600" : "text-rose-600"),
       pctArrow: (v: number) => (v >= 0 ? "↑" : "↓"),
     },
     {
-      label: "Sales This Month",
+      label: "Sales this month",
       value: analytics.monthSales,
       tone: "from-[#635BFF]/10 to-[#635BFF]/5",
       accent: "text-[#635BFF]",
       Icon: Wallet,
       pct: monthSalesPct,
+      note: "",
       pctColor: (v: number) => (v >= 0 ? "text-emerald-600" : "text-rose-600"),
       pctArrow: (v: number) => (v >= 0 ? "↑" : "↓"),
     },
     {
-      label: "Expenses This Week",
-      value: analytics.weekCosts,
-      tone: "from-amber-100 to-amber-50",
-      accent: "text-amber-600",
-      Icon: Coins,
-      pct: weekCostsPct,
-      pctColor: (v: number) => (v <= 0 ? "text-emerald-600" : "text-rose-600"),
-      pctArrow: (v: number) => (v >= 0 ? "↑" : "↓"),
-    },
-    {
-      label: "Net Profit This Week",
+      label: "Net profit this week",
       value: left,
       tone: left >= 0 ? "from-emerald-100 to-emerald-50" : "from-rose-100 to-rose-50",
       accent: left >= 0 ? "text-emerald-600" : "text-rose-600",
       Icon: Trophy,
       pct: leftPct,
+      note: "",
+      pctColor: (v: number) => (v >= 0 ? "text-emerald-600" : "text-rose-600"),
+      pctArrow: (v: number) => (v >= 0 ? "↑" : "↓"),
+    },
+    {
+      label: "Expenses this week",
+      value: analytics.weekCosts,
+      tone: "from-amber-100 to-amber-50",
+      accent: "text-amber-600",
+      Icon: Coins,
+      pct: weekCostsPct,
+      note: "",
+      pctColor: (v: number) => (v <= 0 ? "text-emerald-600" : "text-rose-600"),
+      pctArrow: (v: number) => (v >= 0 ? "↑" : "↓"),
+    },
+    {
+      label: "Money collected this week",
+      value: analytics.collectedThisWeek || 0,
+      tone: "from-emerald-50 to-emerald-100/40",
+      accent: "text-emerald-700",
+      Icon: Banknote,
+      pct: null,
+      note: "Payments received, not new sales",
+      pctColor: (v: number) => (v >= 0 ? "text-emerald-600" : "text-rose-600"),
+      pctArrow: (v: number) => (v >= 0 ? "↑" : "↓"),
+    },
+    {
+      label: "Outstanding debts",
+      value: analytics.outstandingDebts || 0,
+      tone: "from-amber-50 to-amber-100/50",
+      accent: "text-amber-700",
+      Icon: Scale,
+      pct: null,
+      note: "Remaining balances, as of today",
       pctColor: (v: number) => (v >= 0 ? "text-emerald-600" : "text-rose-600"),
       pctArrow: (v: number) => (v >= 0 ? "↑" : "↓"),
     },
@@ -119,18 +145,20 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         </div>
 
         {/* Upgrade 4 — 4 summary cards with real period-over-period % indicators (natural case, matching mockup 1) */}
-        <div className="mt-5 grid grid-cols-2 gap-3">
+        <div className="mt-5 grid min-w-0 grid-cols-2 gap-3">
           {cards.map((card) => {
             const Icon = card.Icon;
             return (
-              <div key={card.label} className={`rounded-2xl border border-zinc-100 bg-gradient-to-br ${card.tone} p-4`}>
-                <div className="flex items-center gap-1.5">
-                  <Icon className={`h-4 w-4 ${card.accent}`} />
-                  <p className="text-xs font-medium text-zinc-600">{card.label}</p>
+              <div key={card.label} className={`min-w-0 rounded-2xl border border-zinc-100 bg-gradient-to-br ${card.tone} p-4`}>
+                <div className="flex items-start gap-1.5">
+                  <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${card.accent}`} />
+                  <p className="text-xs font-medium leading-4 text-zinc-600">{card.label}</p>
                 </div>
-                <p className="mt-2 text-xl font-bold text-zinc-900">₦{Number(card.value).toLocaleString()}</p>
-                {card.label === "Net Profit This Week" && analytics.missingCostUnits > 0 ? (
+                <p className="mt-2 break-words text-xl font-bold text-zinc-900">₦{Number(card.value).toLocaleString()}</p>
+                {card.label === "Net profit this week" && analytics.missingCostUnits > 0 ? (
                   <p className="mt-1.5 text-xs font-medium text-amber-700">⚠ {analytics.missingCostUnits === 1 ? "1 item missing cost" : `${analytics.missingCostUnits} items missing cost`}</p>
+                ) : card.note ? (
+                  <p className="mt-1.5 text-xs text-zinc-500">{card.note}</p>
                 ) : card.pct !== null ? (
                   <p className={`mt-1.5 flex items-center gap-0.5 text-xs font-semibold ${card.pctColor(card.pct)}`}>
                     <span className="text-sm leading-none">{card.pctArrow(card.pct)}</span>
@@ -142,19 +170,6 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
               </div>
             );
           })}
-        </div>
-
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <div className="rounded-2xl border border-zinc-100 bg-white p-4">
-            <p className="text-xs font-medium text-zinc-500">Money collected this week</p>
-            <p className="mt-2 text-xl font-bold text-zinc-900">₦{Number(analytics.collectedThisWeek || 0).toLocaleString()}</p>
-            <p className="mt-1 text-xs text-zinc-400">Payments received, not new sales</p>
-          </div>
-          <div className="rounded-2xl border border-zinc-100 bg-white p-4">
-            <p className="text-xs font-medium text-zinc-500">Outstanding debts</p>
-            <p className="mt-2 text-xl font-bold text-zinc-900">₦{Number(analytics.outstandingDebts || 0).toLocaleString()}</p>
-            <p className="mt-1 text-xs text-zinc-400">Remaining balances, as of today</p>
-          </div>
         </div>
 
         <SalesOverview days={analytics.chartDays} from={analytics.chartFrom} to={analytics.chartTo} range={analytics.chartRange || "7"} />
