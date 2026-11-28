@@ -1,13 +1,16 @@
 "use server";
 
+import { randomInt } from "crypto";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getCurrentBusiness } from "@/features/business/queries";
 import { staffSchema } from "./schema";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+const inviteAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
 function inviteCode() {
-  return Math.random().toString(36).slice(2, 8).toUpperCase();
+  return Array.from({ length: 8 }, () => inviteAlphabet[randomInt(inviteAlphabet.length)]).join("");
 }
 
 export async function createStaffAction(formData: FormData) {
@@ -23,16 +26,24 @@ export async function createStaffAction(formData: FormData) {
   if (!business || business.role !== "owner") throw new Error("Only the owner can add staff");
 
   const supabase = await createServerSupabase();
-  const { error } = await supabase.from("staff_members").insert({
-    business_id: business.id,
-    name: parsed.data.name,
-    phone: parsed.data.phone,
-    email: parsed.data.email.toLowerCase(),
-    role: parsed.data.role,
-    invite_code: inviteCode(),
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/staff");
+  let lastError = "Could not create invite";
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const { error } = await supabase.from("staff_members").insert({
+      business_id: business.id,
+      name: parsed.data.name,
+      phone: parsed.data.phone,
+      email: parsed.data.email.toLowerCase(),
+      role: parsed.data.role,
+      invite_code: inviteCode(),
+    });
+    if (!error) {
+      revalidatePath("/staff");
+      return;
+    }
+    lastError = error.message;
+    if (error.code !== "23505") break;
+  }
+  throw new Error(lastError);
 }
 
 export async function toggleStaffAction(formData: FormData) {
@@ -56,17 +67,14 @@ export async function joinStaffAction(formData: FormData) {
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const password = String(formData.get("password") || "");
   const name = String(formData.get("name") || "").trim();
-  if (code.length < 4) throw new Error("Enter the invite code");
+  if (!/^[A-Z0-9]{6,8}$/.test(code)) throw new Error("Enter the invite code");
   if (!email.includes("@")) throw new Error("Enter the invited email");
   if (password.length < 6) throw new Error("Password must be at least 6 characters");
 
   const supabase = await createServerSupabase();
-  const { data: invitedEmail, error: previewError } = await supabase.rpc("preview_staff_invite", { p_code: code });
+  const { data: valid, error: previewError } = await supabase.rpc("check_staff_invite", { p_code: code, p_email: email });
   if (previewError) throw new Error(previewError.message);
-  if (!invitedEmail) {
-    throw new Error("This code was already used. Do not join again. Log in with that email and password.");
-  }
-  if (String(invitedEmail).toLowerCase() !== email) throw new Error("Use the email the owner invited");
+  if (!valid) throw new Error("Invite code or email is not valid. Use the email the owner invited.");
 
   const { data: created, error: signUpError } = await supabase.auth.signUp({
     email,

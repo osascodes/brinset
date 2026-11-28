@@ -16,7 +16,7 @@ export default function JoinPage() {
   const [shopName, setShopName] = useState("");
 
   useEffect(() => {
-    if (code.length !== 6) {
+    if (code.length < 6) {
       setShopName("");
       return;
     }
@@ -35,7 +35,7 @@ export default function JoinPage() {
   return (
     <AuthCard
       title="Join a shop"
-      subtitle="Enter the 6-character invite code shared by your shop owner to set up your staff account."
+      subtitle="Enter the invite code shared by your shop owner to set up your staff account."
       backHref="/login"
       backLabel="← Back to log in"
     >
@@ -58,7 +58,7 @@ export default function JoinPage() {
           <Input
             name="code"
             value={code}
-            onChange={(event) => setCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))}
+            onChange={(event) => setCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8))}
             placeholder="A1B2C3"
             autoCapitalize="characters"
             required
