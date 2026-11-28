@@ -16,7 +16,7 @@ function money(value: number) {
   return `₦${amount.toLocaleString()}`;
 }
 
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ date?: string; joined?: string }> }) {
   const params = await searchParams;
   const dateValue = resolveDayKey(params.date);
   const isToday = dateValue === lagosDateKey(new Date());
@@ -112,6 +112,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const unreadAlerts = isOwner ? await getAlertCount() : 0;
 
   return (
+    <>
+    {params.joined ? <p className="mx-4 mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">Congratulations! You've successfully joined {params.joined}.</p> : null}
     <SavedHome
       unreadAlerts={unreadAlerts}
       snapshot={{
@@ -141,5 +143,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         payments: recentPayments,
       }}
     />
+    </>
   );
 }

@@ -31,7 +31,8 @@ export default async function StaffPage() {
                   <div>
                     <h2 className="font-semibold text-zinc-950">{member.name}</h2>
                     <p className="mt-1 text-sm text-zinc-400">{member.role} · {member.email}</p>
-                    <p className="mt-1 text-xs text-zinc-500">{member.user_id ? "Joined" : `Invite code: ${member.invite_code}`}</p>
+                    <p className="mt-1 text-xs text-zinc-500">{member.user_id ? "Joined" : `Pending · ${member.invite_code}`}</p>
+                    {!member.user_id ? <p className="mt-1 text-xs text-zinc-400">Expires {member.invite_expires_at ? new Date(member.invite_expires_at).toLocaleDateString("en-NG", { day: "numeric", month: "short", timeZone: "Africa/Lagos" }) : "in 14 days"}</p> : null}
                   </div>
                   <form action={toggleStaffAction}>
                     <input type="hidden" name="id" value={member.id} />

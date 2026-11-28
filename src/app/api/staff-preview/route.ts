@@ -18,23 +18,23 @@ function overLimit(key: string, max: number) {
 
 export async function GET(request: Request) {
   const code = new URL(request.url).searchParams.get("code")?.trim().toUpperCase() || "";
-  if (!/^[A-Z0-9]{6,8}$/.test(code)) return NextResponse.json({ name: null });
+  if (!/^[A-Z0-9]{6,8}$/.test(code)) return NextResponse.json({ invite: null });
 
   const headerList = await headers();
   const ip = headerList.get("x-forwarded-for")?.split(",")[0]?.trim() || headerList.get("x-real-ip") || "unknown";
   if (overLimit(`ip:${ip}`, 20) || overLimit(`code:${ip}:${code}`, 5)) {
-    return NextResponse.json({ name: null, limited: true }, { status: 429 });
+    return NextResponse.json({ invite: null, limited: true }, { status: 429 });
   }
 
   const supabase = createAdminSupabase();
-  if (!supabase) return NextResponse.json({ name: null, limited: true }, { status: 429 });
+  if (!supabase) return NextResponse.json({ invite: null, limited: true }, { status: 429 });
 
   const { data: allowed, error: guardError } = await supabase.rpc("guard_staff_preview", { p_code: code, p_ip: ip });
   if (guardError || allowed !== true) {
-    return NextResponse.json({ name: null, limited: true }, { status: 429 });
+    return NextResponse.json({ invite: null, limited: true }, { status: 429 });
   }
 
-  const { data, error } = await supabase.rpc("preview_staff_shop", { p_code: code });
-  if (error) return NextResponse.json({ name: null });
-  return NextResponse.json({ name: data || null });
+  const { data, error } = await supabase.rpc("preview_staff_details", { p_code: code });
+  if (error || !data) return NextResponse.json({ invite: null });
+  return NextResponse.json({ invite: data });
 }

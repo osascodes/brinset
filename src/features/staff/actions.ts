@@ -1,9 +1,11 @@
 "use server";
 
 import { randomInt } from "crypto";
+import { headers } from "next/headers";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getCurrentBusiness } from "@/features/business/queries";
 import { staffSchema } from "./schema";
+import { sendStaffInviteEmail } from "./email";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -26,24 +28,86 @@ export async function createStaffAction(formData: FormData) {
   if (!business || business.role !== "owner") throw new Error("Only the owner can add staff");
 
   const supabase = await createServerSupabase();
-  let lastError = "Could not create invite";
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const { error } = await supabase.from("staff_members").insert({
-      business_id: business.id,
-      name: parsed.data.name,
-      phone: parsed.data.phone,
-      email: parsed.data.email.toLowerCase(),
-      role: parsed.data.role,
-      invite_code: inviteCode(),
-    });
-    if (!error) {
-      revalidatePath("/staff");
-      return;
+  const email = parsed.data.email.toLowerCase();
+  const { data: existing } = await supabase
+    .from("staff_members")
+    .select("id, name, email, role, invite_code, invite_expires_at")
+    .eq("business_id", business.id)
+    .eq("email", email)
+    .is("user_id", null)
+    .eq("active", true)
+    .maybeSingle();
+
+  let invite = existing;
+  if (!invite) {
+    let lastError = "Could not create invite";
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const code = inviteCode();
+      const { data, error } = await supabase
+        .from("staff_members")
+        .insert({
+          business_id: business.id,
+          name: parsed.data.name,
+          phone: parsed.data.phone,
+          email,
+          role: parsed.data.role,
+          invite_code: code,
+        })
+        .select("id, name, email, role, invite_code, invite_expires_at")
+        .single();
+      if (!error && data) {
+        invite = data;
+        break;
+      }
+      lastError = error?.message || lastError;
+      if (error?.code !== "23505") throw new Error(lastError);
     }
-    lastError = error.message;
-    if (error.code !== "23505") break;
   }
-  throw new Error(lastError);
+  if (!invite) throw new Error("Could not create invite");
+
+  const delivery = await deliverInvite(invite);
+  revalidatePath("/staff");
+  return { ...invite, ...delivery };
+}
+
+async function deliverInvite(invite: { id: string; name: string; email: string; role: string; invite_code: string; invite_expires_at: string | null }) {
+  const business = await getCurrentBusiness();
+  const supabase = await createServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  const headerList = await headers();
+  const origin = headerList.get("origin") || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const result = await sendStaffInviteEmail({
+    to: invite.email,
+    staffName: invite.name,
+    ownerName: String(user?.user_metadata?.full_name || user?.email || "The shop owner"),
+    shopName: business?.name || "your shop",
+    role: invite.role,
+    code: invite.invite_code,
+    expiresAt: invite.invite_expires_at,
+    joinUrl: `${origin}/join?code=${invite.invite_code}`,
+  });
+  if (result.sent) {
+    await supabase.from("staff_members").update({ invite_email_sent_at: new Date().toISOString() }).eq("id", invite.id);
+  }
+  return { emailSent: result.sent, emailError: result.error || "" };
+}
+
+export async function resendStaffInviteAction(formData: FormData) {
+  const id = String(formData.get("id") || "");
+  const business = await getCurrentBusiness();
+  if (!business || business.role !== "owner" || !id) throw new Error("Missing invite");
+  const supabase = await createServerSupabase();
+  const { data: invite, error } = await supabase
+    .from("staff_members")
+    .select("id, name, email, role, invite_code, invite_expires_at")
+    .eq("id", id)
+    .eq("business_id", business.id)
+    .is("user_id", null)
+    .maybeSingle();
+  if (error || !invite) throw new Error("Invite not found");
+  const delivery = await deliverInvite(invite);
+  revalidatePath("/staff");
+  return { ...invite, ...delivery };
 }
 
 export async function toggleStaffAction(formData: FormData) {
@@ -87,8 +151,8 @@ export async function joinStaffAction(formData: FormData) {
   const { data: joined, error } = await supabase.rpc("accept_staff_invite", { p_code: code, p_email: email });
   if (error) throw new Error(error.message);
   if (!joined) throw new Error("Could not link this login to the shop");
-  if (name) await supabase.from("staff_members").update({ name }).eq("id", joined);
-
   revalidatePath("/", "layout");
-  redirect("/dashboard");
+  const { data: membership } = await supabase.rpc("current_membership");
+  const shop = Array.isArray(membership) ? membership[0]?.name : membership?.name;
+  redirect(`/dashboard?joined=${encodeURIComponent(shop || "the shop")}`);
 }
