@@ -43,6 +43,7 @@ const moreStaff = [
   { href: "/storefront", label: "Store", icon: Store },
   { href: "/customers", label: "Customers", icon: Users },
   { href: "/debts", label: "Debts", icon: ShoppingBag },
+  { href: "/activity", label: "Activity", icon: Activity },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -53,6 +54,8 @@ export default function AppNav({ role = "owner", alertCount = 0 }: { role?: stri
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const more = role === "owner" ? moreOwner : moreStaff;
+  const main = role === "owner" ? primary : primary.filter((item) => item.href !== "/analytics");
+  const links = [...main, ...more];
   const moreActive = more.some((item) => isActive(pathname, item.href));
 
   useEffect(() => {
@@ -65,7 +68,7 @@ export default function AppNav({ role = "owner", alertCount = 0 }: { role?: stri
     <>
       <aside className="hidden w-60 shrink-0 border-r border-zinc-200 bg-white p-4 md:block">
         <nav className="flex flex-col gap-1">
-          {[...primary, ...more].map((item) => {
+          {links.map((item) => {
             const active = isActive(pathname, item.href);
             const Icon = item.icon;
             return (
@@ -90,7 +93,7 @@ export default function AppNav({ role = "owner", alertCount = 0 }: { role?: stri
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white px-2 pb-[env(safe-area-inset-bottom)] md:hidden">
         <div className="grid grid-cols-5">
-          {primary.map((item) => {
+          {main.map((item) => {
             const active = isActive(pathname, item.href);
             const Icon = item.icon;
             return (

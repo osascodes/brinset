@@ -61,12 +61,14 @@ export default async function InventoryPage({
         <div className="mx-auto grid w-full min-w-0 max-w-5xl gap-6 lg:grid-cols-[320px_1fr]">
           <div>
             <h1 className="text-2xl font-semibold text-zinc-950">Stock</h1>
-            <p className="mt-2 text-sm text-zinc-400">Add what you sell. Tap Edit if the name, price, or stock is wrong.</p>
-            <div className="mt-6">
-              <ProductForm canEditCost={business.role === "owner"} />
-            </div>
+            <p className="mt-2 text-sm text-zinc-400">{business.role === "owner" ? "Add what you sell. Tap Edit if the name, price, or stock is wrong." : "View available products and stock."}</p>
+            {business.role === "owner" ? (
+              <div className="mt-6">
+                <ProductForm canEditCost />
+              </div>
+            ) : null}
           </div>
-          <StockList products={products} highlightLow={focus === "low"} canEditCost={business.role === "owner"} />
+          <StockList products={products} highlightLow={focus === "low"} canEdit={business.role === "owner"} canEditCost={business.role === "owner"} />
         </div>
       </main>
     </>

@@ -3,6 +3,7 @@
 import { randomInt } from "crypto";
 import { headers } from "next/headers";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { createAdminSupabase } from "@/lib/supabase/admin";
 import { getCurrentBusiness } from "@/features/business/queries";
 import { staffSchema } from "./schema";
 import { sendStaffInviteEmail } from "./email";
@@ -163,12 +164,38 @@ export async function joinStaffAction(formData: FormData) {
   });
   if (signUpError) throw new Error(signUpError.message);
   if (!created.session) throw new Error("Turn off Confirm email in Supabase Auth, then try again.");
+  await supabase.auth.setSession({ access_token: created.session.access_token, refresh_token: created.session.refresh_token });
 
-  const { data: joined, error } = await supabase.rpc("accept_staff_invite", { p_code: code, p_email: email });
-  if (error) throw new Error(error.message);
+  let joined: string | null = null;
+  const { data: rpcJoined, error } = await supabase.rpc("accept_staff_invite", { p_code: code, p_email: email });
+  if (!error && rpcJoined) {
+    joined = rpcJoined;
+  } else {
+    // Fallback: link with admin client if the session-based RPC did not attach user_id
+    const admin = createAdminSupabase();
+    const userId = created.user?.id;
+    if (admin && userId) {
+      const { data: updated, error: adminError } = await admin
+        .from("staff_members")
+        .update({ user_id: userId, active: true })
+        .eq("invite_code", code)
+        .eq("email", email)
+        .is("user_id", null)
+        .eq("active", true)
+        .is("invite_revoked_at", null)
+        .select("id")
+        .maybeSingle();
+      if (adminError || !updated) {
+        throw new Error(error?.message || adminError?.message || "Could not link this login to the shop");
+      }
+      joined = updated.id;
+    } else {
+      throw new Error(error?.message || "Could not link this login to the shop");
+    }
+  }
   if (!joined) throw new Error("Could not link this login to the shop");
   revalidatePath("/", "layout");
   const { data: membership } = await supabase.rpc("current_membership");
-  const shop = Array.isArray(membership) ? membership[0]?.name : membership?.name;
-  redirect(`/dashboard?joined=${encodeURIComponent(shop || "the shop")}`);
+  const row = Array.isArray(membership) ? membership[0] : membership;
+  redirect(`/dashboard?joined=${encodeURIComponent(row?.name || "the shop")}&role=${encodeURIComponent(row?.role || "Sales")}`);
 }

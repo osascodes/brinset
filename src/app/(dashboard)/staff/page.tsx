@@ -1,47 +1,31 @@
 import { redirect } from "next/navigation";
 import { getCurrentBusiness } from "@/features/business/queries";
 import { getStaff } from "@/features/staff/queries";
-import { toggleStaffAction } from "@/features/staff/actions";
 import StaffForm from "@/features/staff/components/StaffForm";
-import { Button } from "@/components/ui/button";
+import StaffCards from "@/features/staff/components/StaffCards";
 
 export default async function StaffPage() {
   const business = await getCurrentBusiness();
   if (!business) redirect("/onboarding");
   if (business.role !== "owner") redirect("/dashboard");
   const staff = await getStaff();
+  const emailConfigured = Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
 
   return (
     <main className="px-4 py-8 md:px-8">
       <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[320px_1fr]">
         <div>
           <h1 className="text-2xl font-semibold text-zinc-950">Staff</h1>
-          <p className="mt-2 text-sm text-zinc-400">Invite a helper. They join with the code at /join.</p>
+          <p className="mt-2 text-sm text-zinc-500">Invite a helper. They join with the code at /join.</p>
           <div className="mt-6">
             <StaffForm />
           </div>
         </div>
-        <div className="space-y-3">
+        <div>
           {staff.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-zinc-200 p-6 text-sm text-zinc-500">No staff yet.</div>
           ) : (
-            staff.map((member) => (
-              <div key={member.id} className="rounded-2xl border border-zinc-200 bg-white p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h2 className="font-semibold text-zinc-950">{member.name}</h2>
-                    <p className="mt-1 text-sm text-zinc-400">{member.role} · {member.email}</p>
-                    <p className="mt-1 text-xs text-zinc-500">{member.user_id ? "Joined" : `Pending · ${member.invite_code}`}</p>
-                    {!member.user_id ? <p className="mt-1 text-xs text-zinc-400">Expires {member.invite_expires_at ? new Date(member.invite_expires_at).toLocaleDateString("en-NG", { day: "numeric", month: "short", timeZone: "Africa/Lagos" }) : "in 14 days"}</p> : null}
-                  </div>
-                  <form action={toggleStaffAction}>
-                    <input type="hidden" name="id" value={member.id} />
-                    <input type="hidden" name="active" value={String(member.active)} />
-                    <Button type="submit" variant="outline" className="h-9">{member.active ? "Pause" : "Activate"}</Button>
-                  </form>
-                </div>
-              </div>
-            ))
+            <StaffCards members={staff} emailConfigured={emailConfigured} />
           )}
         </div>
       </div>

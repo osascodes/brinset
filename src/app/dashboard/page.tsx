@@ -7,6 +7,7 @@ import { getTodayExpenses, getTodayCosts } from "@/features/expenses/queries";
 import { getOrdersToDo } from "@/features/orders/queries";
 import { redirect } from "next/navigation";
 import SavedHome from "@/features/dashboard/components/SavedHome";
+import JoinSuccessModal from "@/features/dashboard/components/JoinSuccessModal";
 import { getAlertCount } from "@/features/notifications/queries";
 import { lagosDateKey, resolveDayKey } from "@/lib/dates";
 import { netProfit } from "@/features/finance/math";
@@ -16,7 +17,7 @@ function money(value: number) {
   return `₦${amount.toLocaleString()}`;
 }
 
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ date?: string; joined?: string }> }) {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ date?: string; joined?: string; role?: string }> }) {
   const params = await searchParams;
   const dateValue = resolveDayKey(params.date);
   const isToday = dateValue === lagosDateKey(new Date());
@@ -113,7 +114,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   return (
     <>
-    {params.joined && business.role !== "owner" && params.joined === business.name ? <p className="mx-4 mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">Congratulations! You've successfully joined {business.name}.</p> : null}
+    {params.joined && business.role !== "owner" && params.joined === business.name ? <JoinSuccessModal shop={business.name} role={params.role || business.role || "Sales"} /> : null}
     <SavedHome
       unreadAlerts={unreadAlerts}
       snapshot={{

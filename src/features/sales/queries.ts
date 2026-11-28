@@ -9,12 +9,15 @@ export async function getRecentSales() {
     if (!business) return [];
 
     const supabase = await createServerSupabase();
-    const { data, error } = await supabase
+    const { data: { user } } = await supabase.auth.getUser();
+    let query = supabase
       .from("sales")
       .select("id, total, discount, created_at, customer_id, status, voided_at, void_reason, refund_due, customers(name, phone), sale_items(name, quantity, price)")
       .eq("business_id", business.id)
       .order("created_at", { ascending: false })
       .limit(30);
+    if (business.role !== "owner" && user) query = query.eq("recorded_by", user.id);
+    const { data, error } = await query;
     if (error) return [];
 
     const sales = data ?? [];
@@ -53,12 +56,10 @@ export async function getTodaySalesTotal(day: Date | string = new Date()) {
   const { start, end } = lagosDayRange(resolveDayKey(day));
 
   const supabase = await createServerSupabase();
-  const { data } = await supabase
-    .from("sales")
-    .select("total, status")
-    .eq("business_id", business.id)
-    .gte("created_at", start.toISOString())
-    .lt("created_at", end.toISOString());
+  const { data: { user } } = await supabase.auth.getUser();
+  let query = supabase.from("sales").select("total, status").eq("business_id", business.id).gte("created_at", start.toISOString()).lt("created_at", end.toISOString());
+  if (business.role !== "owner" && user) query = query.eq("recorded_by", user.id);
+  const { data } = await query;
 
   return (data ?? []).filter((sale) => sale.status !== "voided").reduce((sum, sale) => sum + Number(sale.total), 0);
 }
@@ -68,15 +69,10 @@ export async function getTodaySales(day: Date | string = new Date()) {
   if (!business) return [];
   const { start, end } = lagosDayRange(resolveDayKey(day));
   const supabase = await createServerSupabase();
-  const { data } = await supabase
-    .from("sales")
-    .select("id, total, created_at, status, sale_items(name, quantity)")
-    .eq("business_id", business.id)
-    .gte("created_at", start.toISOString())
-    .lt("created_at", end.toISOString())
-    .neq("status", "voided")
-    .order("created_at", { ascending: false })
-    .limit(8);
+  const { data: { user } } = await supabase.auth.getUser();
+  let query = supabase.from("sales").select("id, total, created_at, status, sale_items(name, quantity)").eq("business_id", business.id).gte("created_at", start.toISOString()).lt("created_at", end.toISOString()).neq("status", "voided").order("created_at", { ascending: false }).limit(8);
+  if (business.role !== "owner" && user) query = query.eq("recorded_by", user.id);
+  const { data } = await query;
   return (data ?? []).map((sale) => ({
     id: sale.id,
     total: Number(sale.total),

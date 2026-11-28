@@ -66,6 +66,7 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
           </div>
           <SaleForm products={products} customers={customers} />
           <SaleList
+            canVoid={business.role === "owner"}
             todayOnly={todayOnly}
             sales={sales.map((sale) => {
               const items = sale.sale_items ?? [];

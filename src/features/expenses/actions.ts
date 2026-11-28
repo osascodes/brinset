@@ -17,6 +17,7 @@ export async function createExpenseAction(formData: FormData) {
 
   const business = await getCurrentBusiness();
   if (!business) throw new Error("Create your business first");
+  if (business.role !== "owner") throw new Error("Only the owner can record expenses");
 
   const supabase = await createServerSupabase();
   const { error } = await supabase.from("expenses").insert({

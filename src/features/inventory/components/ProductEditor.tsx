@@ -19,7 +19,7 @@ type Product = {
   low_stock_at: number;
 };
 
-export default function ProductEditor({ product, onStock, canEditCost = false }: { product: Product; onStock?: (stock: number) => void; canEditCost?: boolean }) {
+export default function ProductEditor({ product, onStock, canEdit = false, canEditCost = false }: { product: Product; onStock?: (stock: number) => void; canEdit?: boolean; canEditCost?: boolean }) {
   const [open, setOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [notice, setNotice] = useState("");
@@ -34,16 +34,18 @@ export default function ProductEditor({ product, onStock, canEditCost = false }:
       <div>
         <h2 className="font-semibold text-zinc-950">{product.name}</h2>
         <p className="mt-1 text-sm text-zinc-400">₦{Number(product.price).toLocaleString()}</p>
-        <button type="button" onClick={() => setOpen((value) => !value)} className="mt-2 text-xs text-violet-300">
-          {open ? "Close" : "Edit"}
-        </button>
+        {canEdit ? (
+          <button type="button" onClick={() => setOpen((value) => !value)} className="mt-2 text-xs font-medium text-[#635BFF]">
+            {open ? "Close" : "Edit"}
+          </button>
+        ) : null}
         {notice ? <p className="mt-1 text-xs text-zinc-500">{notice}</p> : null}
       </div>
       <div className="text-right">
         <p className={shownStock <= product.low_stock_at ? "text-sm text-amber-300" : "text-sm text-zinc-600"}>
           {shownStock} in stock
         </p>
-        <form
+        {canEdit ? <form
           className="mt-2 flex items-center gap-2"
           onSubmit={async (event) => {
             event.preventDefault();
@@ -85,7 +87,7 @@ export default function ProductEditor({ product, onStock, canEditCost = false }:
           <button type="submit" disabled={adding} className="h-9 rounded-lg bg-white px-3 text-xs font-semibold text-zinc-950">
             {adding ? "..." : "Add"}
           </button>
-        </form>
+        </form> : null}
       </div>
       {open ? (
         <div className="absolute inset-x-4 top-full z-10 mt-2 space-y-2 rounded-2xl border border-zinc-300 bg-white p-3">
@@ -164,10 +166,12 @@ export default function ProductEditor({ product, onStock, canEditCost = false }:
             </div>
             <Button type="submit" className="h-9 w-full bg-[#635BFF] text-white" disabled={saving}>{saving ? "Saving..." : saved ? "Saved" : "Save"}</Button>
           </form>
-          <form action={deleteProductAction}>
-            <input type="hidden" name="id" value={product.id} />
-            <Button type="submit" className="h-9 w-full bg-white text-red-600 hover:bg-zinc-200">Delete product</Button>
-          </form>
+          {canEdit ? (
+            <form action={deleteProductAction}>
+              <input type="hidden" name="id" value={product.id} />
+              <Button type="submit" className="h-9 w-full bg-white text-red-600 hover:bg-zinc-200">Delete product</Button>
+            </form>
+          ) : null}
         </div>
       ) : null}
     </div>

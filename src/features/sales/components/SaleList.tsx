@@ -49,7 +49,7 @@ function formatWhen(value?: string, fallback = "") {
   return `${datePart} · ${timePart}`;
 }
 
-export default function SaleList({ sales, todayOnly = false }: { sales: Sale[]; todayOnly?: boolean }) {
+export default function SaleList({ sales, todayOnly = false, canVoid = false }: { sales: Sale[]; todayOnly?: boolean; canVoid?: boolean }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "paid" | "partial" | "unpaid" | "voided">("all");
   const [voiding, setVoiding] = useState<Sale | null>(null);
@@ -135,11 +135,11 @@ export default function SaleList({ sales, todayOnly = false }: { sales: Sale[]; 
               </div>
               {sale.voided ? (
                 <p className="mt-2 text-xs text-zinc-500">Voided{sale.voidReason ? `: ${sale.voidReason}` : ""}{sale.refundDue ? ` · ₦${sale.refundDue.toLocaleString()} received, not refunded` : ""}</p>
-              ) : (
+              ) : canVoid ? (
                 <button type="button" onClick={() => { setVoiding(sale); setReason(""); setErrorMessage(""); }} className="mt-2 text-xs font-medium text-rose-600">
                   Void sale
                 </button>
-              )}
+              ) : null}
             </div>
           );
         })

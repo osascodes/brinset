@@ -1,14 +1,21 @@
 import Link from "next/link";
 import { Store, UserRound } from "lucide-react";
 import { logoutAction } from "@/features/auth/actions";
+import { createServerSupabase } from "@/lib/supabase/server";
 
-export default function StartPage() {
+export default async function StartPage() {
+  const supabase = await createServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: paused } = user
+    ? await supabase.from("staff_members").select("id").eq("user_id", user.id).eq("active", false).limit(1)
+    : { data: [] };
   return (
     <main className="flex min-h-screen items-center justify-center bg-white px-4 py-8 text-zinc-950">
       <div className="w-full max-w-md">
         <Link href="/" className="mb-5 flex justify-center">
           <img src="/brinset-logo.png" alt="Brinset" className="h-11 w-auto object-contain" />
         </Link>
+        {paused && paused.length > 0 ? <p className="mb-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">Your staff access is paused. Ask the shop owner to activate it again.</p> : null}
         <h1 className="text-center text-2xl font-semibold">How are you joining?</h1>
         <p className="mt-2 text-center text-sm leading-6 text-zinc-500">You're signed in! Choose how you want to use Brinset.</p>
         <div className="mt-6 space-y-3">

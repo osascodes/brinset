@@ -6,8 +6,12 @@ export async function getActivity() {
   if (!business) return [];
 
   const supabase = await createServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  const isOwner = business.role === "owner";
+  let salesQuery = supabase.from("sales").select("id, total, created_at, status, sale_items(name, quantity)").eq("business_id", business.id).order("created_at", { ascending: false }).limit(20);
+  if (!isOwner && user) salesQuery = salesQuery.eq("recorded_by", user.id);
   const [{ data: sales }, { data: expenses }, { data: orders }, { data: debts }, paymentsResult] = await Promise.all([
-    supabase.from("sales").select("id, total, created_at, status, sale_items(name, quantity)").eq("business_id", business.id).order("created_at", { ascending: false }).limit(20),
+    salesQuery,
     supabase.from("expenses").select("id, title, amount, created_at").eq("business_id", business.id).order("created_at", { ascending: false }).limit(20),
     supabase.from("orders").select("id, order_number, customer_name, product_name, quantity, status, created_at").eq("business_id", business.id).order("created_at", { ascending: false }).limit(40),
     supabase.from("debts").select("id, amount, created_at, status, customers(name), debt_payments(amount, kind, created_at)").eq("business_id", business.id).order("created_at", { ascending: false }).limit(20),
@@ -35,12 +39,12 @@ export async function getActivity() {
       detail: `${(sale.sale_items ?? []).map((item: { quantity: number; name: string }) => `${item.quantity}x ${item.name}`).join(", ") || "Sale"} — ₦${Number(sale.total).toLocaleString()}`,
       createdAt: sale.created_at,
     })),
-    ...(expenses ?? []).map((expense) => ({
+    ...(isOwner ? (expenses ?? []).map((expense) => ({
       id: `expense-${expense.id}`,
       title: "Cost added",
       detail: `${expense.title} · ₦${Number(expense.amount).toLocaleString()}`,
       createdAt: expense.created_at,
-    })),
+    })) : []),
     ...[...groups.values()].map((order) => ({
       id: `order-${order.id}`,
       title: "New order",

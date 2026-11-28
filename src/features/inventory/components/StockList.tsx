@@ -14,7 +14,7 @@ type Product = {
   low_stock_at: number;
 };
 
-export default function StockList({ products, highlightLow = false, canEditCost = false }: { products: Product[]; highlightLow?: boolean; canEditCost?: boolean }) {
+export default function StockList({ products, highlightLow = false, canEdit = false, canEditCost = false }: { products: Product[]; highlightLow?: boolean; canEdit?: boolean; canEditCost?: boolean }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
   const [items, setItems] = useState(products);
@@ -63,7 +63,7 @@ export default function StockList({ products, highlightLow = false, canEditCost 
             ) : (
               <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-white text-[10px] text-zinc-600">No photo</div>
             )}
-            <ProductEditor product={product} canEditCost={canEditCost} onStock={(stock) => setItems((current) => current.map((item) => item.id === product.id ? { ...item, stock } : item))} />
+            <ProductEditor product={product} canEdit={canEdit} canEditCost={canEditCost} onStock={(stock) => setItems((current) => current.map((item) => item.id === product.id ? { ...item, stock } : item))} />
           </div>
           );
         })

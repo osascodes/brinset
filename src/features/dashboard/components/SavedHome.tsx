@@ -202,7 +202,7 @@ export default function SavedHome({ snapshot, offline = false, unreadAlerts = 0 
             )}
             <div>
               <h1 className="text-lg font-semibold">{saved.name}</h1>
-              <p className="text-sm text-zinc-500">{saved.category} · {saved.welcome.replace("Welcome, ", "")}</p>
+              <p className="text-sm text-zinc-500">{saved.role === "owner" ? "Owner" : saved.role.charAt(0).toUpperCase() + saved.role.slice(1)} · {saved.welcome.replace("Welcome, ", "")}</p>
             </div>
           </div>
           <div className="relative flex items-center gap-2">

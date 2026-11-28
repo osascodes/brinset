@@ -7,7 +7,7 @@ export async function getStaff() {
   const supabase = await createServerSupabase();
   const { data } = await supabase
     .from("staff_members")
-    .select("id, name, phone, email, role, active, invite_code, user_id, created_at, invite_expires_at, invite_email_sent_at")
+    .select("id, name, phone, email, role, active, invite_code, user_id, created_at, invite_expires_at, invite_revoked_at, invite_email_sent_at")
     .eq("business_id", business.id)
     .order("created_at", { ascending: false });
   return data ?? [];

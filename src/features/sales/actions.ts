@@ -35,6 +35,8 @@ export async function recordSaleAction(formData: FormData) {
       p_items: items,
     });
     if (error || !saleId) return { error: error?.message || "Could not record the sale" };
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) await supabase.from("sales").update({ recorded_by: user.id }).eq("id", saleId).eq("business_id", business.id);
 
     const { data: soldItems } = await supabase.from("sale_items").select("id, product_id, cost_price").eq("sale_id", saleId);
     const missing = (soldItems ?? []).filter((item) => item.cost_price == null && item.product_id);
