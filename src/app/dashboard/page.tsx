@@ -113,7 +113,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   return (
     <>
-    {params.joined ? <p className="mx-4 mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">Congratulations! You've successfully joined {params.joined}.</p> : null}
+    {params.joined && business.role !== "owner" && params.joined === business.name ? <p className="mx-4 mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">Congratulations! You've successfully joined {business.name}.</p> : null}
     <SavedHome
       unreadAlerts={unreadAlerts}
       snapshot={{

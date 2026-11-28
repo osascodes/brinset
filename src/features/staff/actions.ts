@@ -31,14 +31,20 @@ export async function createStaffAction(formData: FormData) {
   const email = parsed.data.email.toLowerCase();
   const { data: existing } = await supabase
     .from("staff_members")
-    .select("id, name, email, role, invite_code, invite_expires_at")
+    .select("id, name, email, role, invite_code, invite_expires_at, invite_revoked_at")
     .eq("business_id", business.id)
     .eq("email", email)
     .is("user_id", null)
     .eq("active", true)
+    .is("invite_revoked_at", null)
     .maybeSingle();
 
-  let invite = existing;
+  const expired = existing?.invite_expires_at && new Date(existing.invite_expires_at).getTime() <= Date.now();
+  if (existing && expired) {
+    await supabase.from("staff_members").update({ active: false, invite_revoked_at: new Date().toISOString() }).eq("id", existing.id).eq("business_id", business.id);
+  }
+  let invite: { id: string; name: string; email: string; role: string; invite_code: string; invite_expires_at: string | null } | null =
+    existing && !expired ? existing : null;
   if (!invite) {
     let lastError = "Could not create invite";
     for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -75,7 +81,7 @@ async function deliverInvite(invite: { id: string; name: string; email: string; 
   const supabase = await createServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   const headerList = await headers();
-  const origin = headerList.get("origin") || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const origin = process.env.NEXT_PUBLIC_APP_URL || headerList.get("origin") || "http://localhost:3000";
   const result = await sendStaffInviteEmail({
     to: invite.email,
     staffName: invite.name,
@@ -105,6 +111,9 @@ export async function resendStaffInviteAction(formData: FormData) {
     .is("user_id", null)
     .maybeSingle();
   if (error || !invite) throw new Error("Invite not found");
+  if (invite.invite_expires_at && new Date(invite.invite_expires_at).getTime() <= Date.now()) {
+    throw new Error("This invite has expired. Create a new one.");
+  }
   const delivery = await deliverInvite(invite);
   revalidatePath("/staff");
   return { ...invite, ...delivery };
@@ -117,11 +126,18 @@ export async function toggleStaffAction(formData: FormData) {
   if (!business || business.role !== "owner" || !id) throw new Error("Missing staff");
 
   const supabase = await createServerSupabase();
-  const { error } = await supabase
+  const nextActive = !active;
+  const { data: member, error: readError } = await supabase
     .from("staff_members")
-    .update({ active: !active })
+    .select("user_id")
     .eq("id", id)
-    .eq("business_id", business.id);
+    .eq("business_id", business.id)
+    .maybeSingle();
+  if (readError || !member) throw new Error("Missing staff");
+  const patch = member.user_id
+    ? { active: nextActive }
+    : { active: nextActive, invite_revoked_at: nextActive ? null : new Date().toISOString() };
+  const { error } = await supabase.from("staff_members").update(patch).eq("id", id).eq("business_id", business.id);
   if (error) throw new Error(error.message);
   revalidatePath("/staff");
 }

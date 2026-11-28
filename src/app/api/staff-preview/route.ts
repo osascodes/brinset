@@ -29,12 +29,7 @@ export async function GET(request: Request) {
   const supabase = createAdminSupabase();
   if (!supabase) return NextResponse.json({ invite: null, limited: true }, { status: 429 });
 
-  const { data: allowed, error: guardError } = await supabase.rpc("guard_staff_preview", { p_code: code, p_ip: ip });
-  if (guardError || allowed !== true) {
-    return NextResponse.json({ invite: null, limited: true }, { status: 429 });
-  }
-
-  const { data, error } = await supabase.rpc("preview_staff_details", { p_code: code });
-  if (error || !data) return NextResponse.json({ invite: null });
+  const { data, error } = await supabase.rpc("preview_staff_details", { p_code: code, p_ip: ip });
+  if (error || !data) return NextResponse.json({ invite: null, limited: Boolean(error) }, { status: error ? 429 : 200 });
   return NextResponse.json({ invite: data });
 }
