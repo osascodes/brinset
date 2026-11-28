@@ -77,15 +77,8 @@ export async function recordPaymentAction(formData: FormData) {
   if (readError) throw new Error(readError.message);
   if (!debt) throw new Error("Debt not found");
 
-  const nextPaid = Math.min(Number(debt.amount), Number(debt.paid) + payment);
-  const { error } = await supabase.from("debts").update({ paid: nextPaid }).eq("id", debt.id);
+  const { error } = await supabase.rpc("record_debt_payment", { p_debt_id: debt.id, p_amount: payment });
   if (error) throw new Error(error.message);
-  await supabase.from("debt_payments").insert({
-    business_id: business.id,
-    debt_id: debt.id,
-    amount: payment,
-    kind: "later",
-  });
   revalidatePath("/debts");
   revalidatePath("/dashboard");
   revalidatePath("/activity");

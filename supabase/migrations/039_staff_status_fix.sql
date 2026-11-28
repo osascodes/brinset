@@ -24,7 +24,8 @@ begin
     and active = true
     and invite_revoked_at is null
     and (invite_expires_at is null or invite_expires_at > now())
-  limit 1;
+  limit 1
+  for update;
 
   if v_id is null then
     return null;
@@ -44,7 +45,9 @@ begin
   update public.staff_members
   set user_id = auth.uid(),
       active = true
-  where id = v_id;
+  where id = v_id
+    and user_id is null
+  returning id into v_id;
 
   return v_id;
 end;
