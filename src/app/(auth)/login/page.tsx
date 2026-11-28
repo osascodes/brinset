@@ -43,51 +43,42 @@ export default function LoginPage() {
     <AuthCard title="Log in">
       <GoogleButton label="Continue with Google" />
       <div className="my-4 flex items-center gap-3 text-xs text-zinc-500">
-        <span className="h-px flex-1 bg-zinc-100" />
+        <span className="h-px flex-1 bg-[#E5E7EB]" />
         or
-        <span className="h-px flex-1 bg-zinc-100" />
+        <span className="h-px flex-1 bg-[#E5E7EB]" />
       </div>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
         {errorMessage ? (
-          <div className="rounded-md border border-red-500 bg-red-500/10 p-2 text-sm text-red-400">
-            {errorMessage}
-          </div>
+          <div className="rounded-lg border border-red-200 bg-red-50 p-2 text-sm text-red-600">{errorMessage}</div>
         ) : null}
 
         <div className="space-y-1.5">
           <Label htmlFor="email" className="text-zinc-600">Email</Label>
-          <Input {...form.register('email')} type="email" placeholder="you@email.com" />
-          {form.formState.errors.email ? (
-            <p className="text-xs text-red-400">{form.formState.errors.email.message}</p>
-          ) : null}
+          <Input {...form.register('email')} type="email" placeholder="you@email.com" autoComplete="email" />
+          {form.formState.errors.email ? <p className="text-xs text-red-500">{form.formState.errors.email.message}</p> : null}
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="password" className="text-zinc-600">Password</Label>
-          <PasswordInput {...form.register('password')} autoComplete="current-password" />
-          {form.formState.errors.password ? (
-            <p className="text-xs text-red-400">{form.formState.errors.password.message}</p>
-          ) : null}
+          <PasswordInput {...form.register('password')} placeholder="Your password" autoComplete="current-password" />
+          {form.formState.errors.password ? <p className="text-xs text-red-500">{form.formState.errors.password.message}</p> : null}
+          <div className="flex justify-end">
+            <Link href="/forgot-password" className="text-sm font-medium text-[#635BFF]">Forgot password?</Link>
+          </div>
         </div>
 
-        <Button type="submit" className="w-full bg-[#635BFF] text-white hover:opacity-90" disabled={isPending}>
+        <Button type="submit" className="h-11 w-full bg-[#635BFF] text-white hover:bg-[#635BFF]/90" disabled={isPending}>
           {isPending ? 'Signing in...' : 'Log in'}
         </Button>
       </form>
 
-      <div className="mt-4 text-center text-sm text-zinc-400">
+      <div className="mt-4 text-center text-sm text-zinc-500">
         New shop owner?{' '}
-        <Link href="/register" className="text-violet-400 hover:underline">Create a shop</Link>
+        <Link href="/register" className="font-medium text-[#635BFF]">Create a shop</Link>
       </div>
-      <div className="mt-2 text-center text-sm text-zinc-400">
-        New staff?{' '}
-        <Link href="/join" className="text-violet-400 hover:underline">Join with a code</Link>
-      </div>
-      <div className="mt-2 text-center">
-        <Link href="/forgot-password" className="text-sm text-zinc-500 hover:text-zinc-950">
-          Forgot password?
-        </Link>
-      </div>
+      <Link href="/join" className="mt-3 flex h-11 w-full items-center justify-center rounded-full border border-[#E5E7EB] text-sm font-medium text-zinc-700 hover:border-[#635BFF] hover:text-[#635BFF]">
+        New staff? Join with a code
+      </Link>
     </AuthCard>
   );
 }

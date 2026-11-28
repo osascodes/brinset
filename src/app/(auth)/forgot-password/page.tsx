@@ -69,13 +69,13 @@ export default function ForgotPasswordPage() {
           ) : null}
         </div>
 
-        <Button type="submit" className="w-full" disabled={isPending}>
+        <Button type="submit" className="h-11 w-full bg-[#635BFF] text-white hover:bg-[#635BFF]/90" disabled={isPending}>
           {isPending ? "Sending..." : "Send reset link"}
         </Button>
       </form>
 
       <div className="mt-6 text-center text-sm text-muted-foreground">
-        <Link href="/login" className="text-violet-400 hover:underline">
+        <Link href="/login" className="font-medium text-[#635BFF] hover:underline">
           Back to sign in
         </Link>
       </div>

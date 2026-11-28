@@ -1,25 +1,41 @@
+import Link from "next/link";
+import { Store, UserRound } from "lucide-react";
 import { logoutAction } from "@/features/auth/actions";
 
 export default function StartPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-white px-6 text-zinc-950">
+    <main className="flex min-h-screen items-center justify-center bg-white px-4 py-8 text-zinc-950">
       <div className="w-full max-w-md">
-        <p className="text-sm text-violet-300">Brinset</p>
-        <h1 className="mt-2 text-3xl font-semibold">How are you joining?</h1>
-        <p className="mt-3 text-sm leading-6 text-zinc-400">You are logged in, but this account is not linked to a shop yet.</p>
-        <div className="mt-8 space-y-3">
-          <a href="/onboarding" className="flex h-12 items-center justify-center rounded-lg bg-white text-sm font-semibold text-zinc-950">
-            I am the owner
-          </a>
-          <a href="/join" className="flex h-12 items-center justify-center rounded-lg border border-zinc-300 text-sm font-semibold">
-            I have an invite code
-          </a>
-          <form action={logoutAction}>
-            <button type="submit" className="flex h-12 w-full items-center justify-center rounded-lg border border-zinc-300 text-sm font-semibold">
-              Log out and sign in as staff
-            </button>
-          </form>
+        <Link href="/" className="mb-5 flex justify-center">
+          <img src="/brinset-logo.png" alt="Brinset" className="h-11 w-auto object-contain" />
+        </Link>
+        <h1 className="text-center text-2xl font-semibold">How are you joining?</h1>
+        <p className="mt-2 text-center text-sm leading-6 text-zinc-500">You're signed in! Choose how you want to use Brinset.</p>
+        <div className="mt-6 space-y-3">
+          <Link href="/onboarding" className="flex items-start gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-4 hover:border-[#635BFF] hover:bg-[#635BFF]/5">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#635BFF]/10 text-[#635BFF]">
+              <Store className="h-5 w-5" />
+            </span>
+            <span>
+              <span className="block font-semibold">I am a shop owner</span>
+              <span className="mt-0.5 block text-sm text-zinc-500">Set up a new shop, track inventory, and manage sales.</span>
+            </span>
+          </Link>
+          <Link href="/join" className="flex items-start gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-4 hover:border-[#635BFF] hover:bg-[#635BFF]/5">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#635BFF]/10 text-[#635BFF]">
+              <UserRound className="h-5 w-5" />
+            </span>
+            <span>
+              <span className="block font-semibold">I am a staff member</span>
+              <span className="mt-0.5 block text-sm text-zinc-500">Join an existing shop using an invite code from the owner.</span>
+            </span>
+          </Link>
         </div>
+        <form action={logoutAction} className="mt-8 text-center">
+          <button type="submit" className="text-sm text-zinc-400 hover:text-zinc-700">
+            Signed in with the wrong account? Log out
+          </button>
+        </form>
       </div>
     </main>
   );

@@ -2,12 +2,16 @@ import { z } from "zod";
 
 export const businessCategories = [
   "Fashion",
+  "Electronics",
+  "Supermarket/Grocery",
+  "Beauty & Cosmetics",
+  "Food & Drinks",
+  "Other",
   "Retail",
   "Gadgets",
   "Cosmetics",
   "Food",
   "WhatsApp seller",
-  "Other",
 ] as const;
 
 export const onboardingSchema = z.object({

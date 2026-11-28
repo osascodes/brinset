@@ -55,6 +55,7 @@ export async function joinStaffAction(formData: FormData) {
   const code = String(formData.get("code") || "").trim().toUpperCase();
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const password = String(formData.get("password") || "");
+  const name = String(formData.get("name") || "").trim();
   if (code.length < 4) throw new Error("Enter the invite code");
   if (!email.includes("@")) throw new Error("Enter the invited email");
   if (password.length < 6) throw new Error("Password must be at least 6 characters");
@@ -67,13 +68,18 @@ export async function joinStaffAction(formData: FormData) {
   }
   if (String(invitedEmail).toLowerCase() !== email) throw new Error("Use the email the owner invited");
 
-  const { data: created, error: signUpError } = await supabase.auth.signUp({ email, password });
+  const { data: created, error: signUpError } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { full_name: name } },
+  });
   if (signUpError) throw new Error(signUpError.message);
   if (!created.session) throw new Error("Turn off Confirm email in Supabase Auth, then try again.");
 
   const { data: joined, error } = await supabase.rpc("accept_staff_invite", { p_code: code, p_email: email });
   if (error) throw new Error(error.message);
   if (!joined) throw new Error("Could not link this login to the shop");
+  if (name) await supabase.from("staff_members").update({ name }).eq("id", joined);
 
   revalidatePath("/", "layout");
   redirect("/dashboard");
