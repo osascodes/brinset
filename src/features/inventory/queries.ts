@@ -12,7 +12,9 @@ export async function getProducts() {
     .eq("business_id", business.id)
     .order("created_at", { ascending: false });
 
-  return data ?? [];
+  const products = data ?? [];
+  if (business.role === "owner") return products;
+  return products.map(({ cost_price: _cost, ...product }) => product);
 }
 
 export async function getLowStockCount() {

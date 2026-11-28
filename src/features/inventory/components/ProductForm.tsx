@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 
 type FormData = z.infer<typeof productSchema>;
 
-export default function ProductForm() {
+export default function ProductForm({ canEditCost = false }: { canEditCost?: boolean }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [pending, setPending] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -81,10 +81,12 @@ export default function ProductForm() {
           <Label className="text-zinc-600">Selling Price</Label>
           <Input {...form.register("price")} type="number" min="0" step="0.01" placeholder="Sell for" />
         </div>
-        <div className="space-y-1.5">
-          <Label className="text-zinc-600">Cost Price</Label>
-          <Input {...form.register("cost_price")} type="number" min="0" step="0.01" placeholder="Optional" />
-        </div>
+        {canEditCost ? (
+          <div className="space-y-1.5">
+            <Label className="text-zinc-600">Cost Price</Label>
+            <Input {...form.register("cost_price")} type="number" min="0" step="0.01" placeholder="Optional" />
+          </div>
+        ) : null}
         <div className="space-y-1.5">
           <Label className="text-zinc-600">Stock</Label>
           <Input {...form.register("stock")} type="number" min="0" step="1" />

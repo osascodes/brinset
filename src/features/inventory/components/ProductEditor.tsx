@@ -19,7 +19,7 @@ type Product = {
   low_stock_at: number;
 };
 
-export default function ProductEditor({ product, onStock }: { product: Product; onStock?: (stock: number) => void }) {
+export default function ProductEditor({ product, onStock, canEditCost = false }: { product: Product; onStock?: (stock: number) => void; canEditCost?: boolean }) {
   const [open, setOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [notice, setNotice] = useState("");
@@ -146,10 +146,12 @@ export default function ProductEditor({ product, onStock }: { product: Product; 
                 <Label className="text-xs text-zinc-400">Selling Price</Label>
                 <Input name="price" type="number" min="0" step="0.01" defaultValue={product.price} />
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-zinc-400">Cost Price</Label>
-                <Input name="cost_price" type="number" min="0" step="0.01" defaultValue={product.cost_price ?? ""} placeholder="Optional" />
-              </div>
+              {canEditCost ? (
+                <div className="space-y-1">
+                  <Label className="text-xs text-zinc-400">Cost Price</Label>
+                  <Input name="cost_price" type="number" min="0" step="0.01" defaultValue={product.cost_price ?? ""} placeholder="Optional" />
+                </div>
+              ) : null}
             </div>
             <Input name="stock" type="number" min="0" step="1" defaultValue={product.stock} />
             <div className="space-y-1">

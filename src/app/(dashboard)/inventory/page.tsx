@@ -63,10 +63,10 @@ export default async function InventoryPage({
             <h1 className="text-2xl font-semibold text-zinc-950">Stock</h1>
             <p className="mt-2 text-sm text-zinc-400">Add what you sell. Tap Edit if the name, price, or stock is wrong.</p>
             <div className="mt-6">
-              <ProductForm />
+              <ProductForm canEditCost={business.role === "owner"} />
             </div>
           </div>
-          <StockList products={products} highlightLow={focus === "low"} />
+          <StockList products={products} highlightLow={focus === "low"} canEditCost={business.role === "owner"} />
         </div>
       </main>
     </>

@@ -31,6 +31,7 @@ export async function createProductAction(formData: FormData) {
 
   const business = await getCurrentBusiness();
   if (!business) throw new Error("Create your business first");
+  if (business.role !== "owner") throw new Error("Only the owner can change products");
 
   const supabase = await createServerSupabase();
   const file = formData.get("image");
@@ -42,7 +43,7 @@ export async function createProductAction(formData: FormData) {
     business_id: business.id,
     name: parsed.data.name,
     price: parsed.data.price,
-    cost_price: parsed.data.cost_price ?? null,
+    cost_price: business.role === "owner" ? parsed.data.cost_price ?? null : null,
     stock: parsed.data.stock,
     description: parsed.data.description || null,
     category: parsed.data.category?.trim() || null,
@@ -71,16 +72,17 @@ export async function updateProductAction(formData: FormData) {
 
   const business = await getCurrentBusiness();
   if (!business) throw new Error("Create your business first");
+  if (business.role !== "owner") throw new Error("Only the owner can change products");
 
   const supabase = await createServerSupabase();
   const file = formData.get("image");
-  const updates: { name: string; price: number; cost_price: number | null; stock: number; description: string | null; category: string | null; low_stock_at?: number; image_url?: string } = {
+  const updates: { name: string; price: number; cost_price?: number | null; stock: number; description: string | null; category: string | null; low_stock_at?: number; image_url?: string } = {
     name: parsed.data.name,
     price: parsed.data.price,
-    cost_price: parsed.data.cost_price ?? null,
     stock: parsed.data.stock,
     description: parsed.data.description || null,
     category: parsed.data.category?.trim() || null,
+    ...(business.role === "owner" ? { cost_price: parsed.data.cost_price ?? null } : {}),
     ...(parsed.data.low_stock_at !== undefined ? { low_stock_at: parsed.data.low_stock_at } : {}),
   };
 
@@ -103,6 +105,7 @@ export async function deleteProductAction(formData: FormData) {
   const id = String(formData.get("id") || "");
   const business = await getCurrentBusiness();
   if (!business || !id) throw new Error("Missing product");
+  if (business.role !== "owner") throw new Error("Only the owner can change products");
 
   const supabase = await createServerSupabase();
   const { error } = await supabase
