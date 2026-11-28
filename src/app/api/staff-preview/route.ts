@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { createAdminSupabase } from "@/lib/supabase/admin";
 
 const windowMs = 15 * 60 * 1000;
 const buckets = new Map<string, { count: number; reset: number }>();
@@ -26,7 +26,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ name: null, limited: true }, { status: 429 });
   }
 
-  const supabase = await createServerSupabase();
+  const supabase = createAdminSupabase();
+  if (!supabase) return NextResponse.json({ name: null, limited: true }, { status: 429 });
+
   const { data: allowed, error: guardError } = await supabase.rpc("guard_staff_preview", { p_code: code, p_ip: ip });
   if (guardError || allowed !== true) {
     return NextResponse.json({ name: null, limited: true }, { status: 429 });

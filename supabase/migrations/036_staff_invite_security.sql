@@ -38,8 +38,8 @@ as $$
   limit 1;
 $$;
 
-revoke all on function public.preview_staff_shop(text) from public;
-grant execute on function public.preview_staff_shop(text) to anon, authenticated;
+revoke all on function public.preview_staff_shop(text) from public, anon, authenticated;
+grant execute on function public.preview_staff_shop(text) to service_role;
 
 create or replace function public.check_staff_invite(p_code text, p_email text)
 returns boolean
@@ -131,5 +131,5 @@ begin
 end;
 $$;
 
-revoke all on function public.guard_staff_preview(text, text) from public;
-grant execute on function public.guard_staff_preview(text, text) to anon, authenticated;
+revoke all on function public.guard_staff_preview(text, text) from public, anon, authenticated;
+grant execute on function public.guard_staff_preview(text, text) to service_role;
