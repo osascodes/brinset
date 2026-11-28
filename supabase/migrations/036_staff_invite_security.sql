@@ -18,6 +18,7 @@ create index if not exists staff_preview_attempts_code_idx
   on public.staff_preview_attempts (code, created_at desc);
 
 alter table public.staff_preview_attempts enable row level security;
+revoke all on table public.staff_preview_attempts from public, anon, authenticated;
 
 create or replace function public.preview_staff_shop(p_code text)
 returns text
@@ -105,8 +106,9 @@ begin
     return false;
   end if;
 
-  delete from public.staff_preview_attempts
-  where created_at < now() - interval '1 hour';
+  -- Serialize checks for this code and this IP so concurrent requests cannot all pass the count.
+  perform pg_advisory_xact_lock(hashtext('staff-preview-code'), hashtext(v_code));
+  perform pg_advisory_xact_lock(hashtext('staff-preview-ip'), hashtext(v_ip));
 
   select count(*) into v_ip_count
   from public.staff_preview_attempts
